@@ -22,14 +22,15 @@ export default function Data() {
         {datasets.map((d) => (
           <div
             key={d.name}
-            className="card engage dismiss"
+            className="card stack engage dismiss"
+            style={{ "--stack-gap": "var(--space-element)" } as React.CSSProperties}
             onClick={() => setSelected(selected === d.name ? null : d.name)}
             {...(selected === d.name ? { "data-selected": "" } : {})}
             {...(selected && selected !== d.name ? { "data-dimmed": "" } : {})}
           >
-            <div className="cluster" style={{ justifyContent: "space-between", marginBottom: "var(--space-element)" }}>
+            <div className="cluster spread">
               <p className="weight-semibold">{d.name}</p>
-              <span className="text-label color-muted" style={{ minHeight: "3lh", display: "flex", alignItems: "start" }}>
+              <span className="text-label color-muted align-start" style={{ minHeight: "3lh" }}>
                 {[
                   ".card",
                   ".engage",
@@ -39,16 +40,16 @@ export default function Data() {
                 ].filter(Boolean).join(" ")}
               </span>
             </div>
-            <dl className="stack" style={{ gap: "var(--space-1)" }}>
-              <div className="cluster" style={{ justifyContent: "space-between" }}>
+            <dl className="stack" style={{ "--stack-gap": "var(--space-1)" } as React.CSSProperties}>
+              <div className="cluster spread">
                 <dt className="text-caption">Samples</dt>
                 <dd>{d.samples.toLocaleString()}</dd>
               </div>
-              <div className="cluster" style={{ justifyContent: "space-between" }}>
+              <div className="cluster spread">
                 <dt className="text-caption">Genes</dt>
                 <dd>{d.genes}</dd>
               </div>
-              <div className="cluster" style={{ justifyContent: "space-between" }}>
+              <div className="cluster spread">
                 <dt className="text-caption">Status</dt>
                 <dd
                   className="badge status-tinted radius-control"

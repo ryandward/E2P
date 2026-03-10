@@ -308,6 +308,9 @@
   --color-danger-subtle:  var(--red-50);
   --color-danger-border:  var(--red-200);
 
+  /* ── Selection ── */
+  --color-selection: var(--neutral-300);
+
   /* ── Spacing intent ── */
   --space-block:   var(--space-4);
   --space-inline:  var(--space-4);
@@ -346,6 +349,54 @@
 
   /* ── Layout ── */
   --nav-height: calc(var(--text-body-sm) * var(--leading-normal) + 2 * var(--space-inline) + 1px);
+}
+
+
+/* ── Dark mode — intent alias remaps only ── */
+
+:root[data-theme="dark"] {
+
+    /* ── Surfaces ── */
+    --color-surface:         var(--neutral-900);
+    --color-surface-raised:  var(--neutral-800);
+    --color-surface-sunken:  var(--neutral-950);
+    --color-surface-frosted: color-mix(in srgb, var(--neutral-900) 85%, transparent);
+
+    /* ── Text ── */
+    --color-text:         var(--neutral-100);
+    --color-text-muted:   var(--neutral-400);
+    --color-text-inverse: var(--neutral-950);
+
+    /* ── Borders ── */
+    --color-border:         var(--neutral-700);
+    --color-border-frosted: color-mix(in srgb, var(--neutral-700) 50%, transparent);
+
+    /* ── Interactive (brand) ── */
+    --color-interactive:       var(--brand-400);
+    --color-interactive-hover: var(--brand-300);
+
+    /* ── Accent (brand) ── */
+    --color-accent:     var(--brand-400);
+    --color-accent-dim: var(--brand-300);
+
+    /* ── Focus ── */
+    --color-ring: var(--brand-400);
+
+    /* ── Status ── */
+    --color-success: var(--emerald-500);
+    --color-warning: var(--amber-500);
+    --color-danger:  var(--red-500);
+
+    /* ── Status surfaces ── */
+    --color-success-subtle: var(--emerald-700);
+    --color-success-border: var(--emerald-600);
+    --color-warning-subtle: var(--amber-700);
+    --color-warning-border: var(--amber-600);
+    --color-danger-subtle:  var(--red-700);
+    --color-danger-border:  var(--red-600);
+
+    /* ── Selection ── */
+    --color-selection: var(--neutral-700);
 }
 
 
@@ -444,7 +495,7 @@ hr {
 }
 
 ::selection {
-  background: var(--neutral-300);
+  background: var(--color-selection);
   color: var(--color-text);
 }
 

@@ -190,6 +190,25 @@
 
 
 /* ═══════════════════════════════════════════
+ * Layout utilities
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Spread: push flex children to opposite ends ── */
+
+.spread {
+  justify-content: space-between;
+}
+
+
+/* ── Align Start: pin item to cross-axis start ── */
+
+.align-start {
+  align-self: flex-start;
+}
+
+
+/* ═══════════════════════════════════════════
  * Interaction utilities
  * ═══════════════════════════════════════════ */
 
