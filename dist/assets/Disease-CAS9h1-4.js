@@ -1,1 +1,0 @@
-import{j as e}from"./index-CzUQhenm.js";function a(){return e.jsxs("article",{className:"region center flow",children:[e.jsx("h1",{children:"Disease"}),e.jsx("p",{children:"Disease-associated variants and their functional context."})]})}export{a as default};

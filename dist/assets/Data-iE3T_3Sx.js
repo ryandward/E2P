@@ -1,1 +1,0 @@
-import{j as a}from"./index-CzUQhenm.js";function e(){return a.jsxs("article",{className:"region center flow",children:[a.jsx("h1",{children:"Data"}),a.jsx("p",{children:"Raw datasets, sample metadata, and quality metrics."})]})}export{e as default};

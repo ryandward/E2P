@@ -1,1 +1,0 @@
-import{j as e}from"./index-CzUQhenm.js";function n(){return e.jsxs("article",{className:"region center flow",children:[e.jsx("h1",{children:"Histones"}),e.jsx("p",{children:"Histone modification patterns and their regulatory significance."})]})}export{n as default};
