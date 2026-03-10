@@ -57,6 +57,7 @@ h6 {
 a {
   color: inherit;
   text-decoration: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ul,
