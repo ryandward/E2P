@@ -1,0 +1,1 @@
+import{j as n}from"./index-CzUQhenm.js";function a(){return n.jsxs("article",{className:"region center flow",children:[n.jsx("h1",{children:"Chromatin"}),n.jsx("p",{children:"Chromatin state annotations and accessibility landscapes."})]})}export{a as default};

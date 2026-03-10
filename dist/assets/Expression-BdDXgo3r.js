@@ -1,0 +1,1 @@
+import{j as s}from"./index-CzUQhenm.js";function n(){return s.jsxs("article",{className:"region center flow",children:[s.jsx("h1",{children:"Expression"}),s.jsx("p",{children:"Gene expression analysis across conditions and cell types."})]})}export{n as default};

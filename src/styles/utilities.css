@@ -1,0 +1,412 @@
+/*
+ * Utilities — named intents, one job each
+ *
+ * CUBE "U" layer. Single-purpose overrides.
+ * Higher cascade priority than blocks by layer order.
+ *
+ * Two kinds:
+ *   1. Token appliers — apply one intent alias.
+ *   2. Interaction vocabulary — named behaviors.
+ *      Some use custom property contracts (consumer
+ *      sets the property, utility reads it).
+ *
+ * Rules:
+ *   1. Reference intent aliases only. Never raw values.
+ *   2. No [data-*] selectors — those belong in exceptions.css.
+ *   3. If a utility is only used by one block, it's a block
+ *      declaration, not a utility.
+ */
+
+
+/* ═══════════════════════════════════════════
+ * Text utilities
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Display (hero typography) ── */
+
+.text-display {
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tighter);
+}
+
+
+/* ── Title (section title) ── */
+
+.text-title {
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tighter);
+}
+
+
+/* ── Heading (card/component heading) ── */
+
+.text-heading {
+  font-size: var(--text-heading);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tighter);
+}
+
+
+/* ── Body large ── */
+
+.text-body-lg {
+  font-size: var(--text-body-lg);
+}
+
+
+/* ── Body small ── */
+
+.text-body-sm {
+  font-size: var(--text-body-sm);
+}
+
+
+/* ── Caption (secondary descriptive text) ── */
+
+.text-caption {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+
+/* ── Label (uppercase small category) ── */
+
+.text-label {
+  font-size: var(--text-fine);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+
+/* ── Fine print ── */
+
+.text-fine {
+  font-size: var(--text-fine);
+}
+
+
+/* ── Micro ── */
+
+.text-micro {
+  font-size: var(--text-micro);
+}
+
+
+/* ── Nano ── */
+
+.text-nano {
+  font-size: var(--text-nano);
+}
+
+
+/* ── Mono ── */
+
+.text-mono {
+  font-family: var(--font-code);
+}
+
+
+/* ── Weight ── */
+
+.weight-normal   { font-weight: var(--weight-normal); }
+.weight-medium   { font-weight: var(--weight-medium); }
+.weight-semibold { font-weight: var(--weight-semibold); }
+.weight-bold     { font-weight: var(--weight-bold); }
+
+
+/* ── Leading ── */
+
+.leading-none    { line-height: var(--leading-none); }
+.leading-tight   { line-height: var(--leading-tight); }
+.leading-snug    { line-height: var(--leading-snug); }
+.leading-normal  { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+
+
+/* ═══════════════════════════════════════════
+ * Color utilities
+ * ═══════════════════════════════════════════ */
+
+.color-muted   { color: var(--color-text-muted); }
+.color-inverse { color: var(--color-text-inverse); }
+.color-brand   { color: var(--color-interactive); }
+.color-success { color: var(--color-success); }
+.color-warning { color: var(--color-warning); }
+.color-danger  { color: var(--color-danger); }
+
+
+/* ═══════════════════════════════════════════
+ * Surface utilities
+ * ═══════════════════════════════════════════ */
+
+.surface-raised {
+  background-color: var(--color-surface-raised);
+  box-shadow: var(--shadow-surface);
+}
+
+.surface-sunken {
+  background-color: var(--color-surface-sunken);
+}
+
+.surface-frosted {
+  background-color: var(--color-surface-frosted);
+  backdrop-filter: var(--backdrop-frosted);
+  -webkit-backdrop-filter: var(--backdrop-frosted);
+}
+
+
+/* ═══════════════════════════════════════════
+ * Radius utilities
+ * ═══════════════════════════════════════════ */
+
+.radius-subtle  { border-radius: var(--radius-subtle); }
+.radius-sm      { border-radius: var(--radius-sm); }
+.radius-md      { border-radius: var(--radius-md); }
+.radius-lg      { border-radius: var(--radius-lg); }
+.radius-xl      { border-radius: var(--radius-xl); }
+.radius-surface { border-radius: var(--radius-surface); }
+.radius-control { border-radius: var(--radius-control); }
+.radius-pill    { border-radius: var(--radius-pill); }
+
+
+/* ═══════════════════════════════════════════
+ * Shadow utilities
+ * ═══════════════════════════════════════════ */
+
+.shadow-xs    { box-shadow: var(--shadow-xs); }
+.shadow-sm    { box-shadow: var(--shadow-sm); }
+.shadow-md    { box-shadow: var(--shadow-md); }
+.shadow-lg    { box-shadow: var(--shadow-lg); }
+.shadow-xl    { box-shadow: var(--shadow-xl); }
+.shadow-inner { box-shadow: var(--shadow-inner); }
+.shadow-brand { box-shadow: var(--shadow-brand); }
+
+
+/* ═══════════════════════════════════════════
+ * Interaction utilities
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Transition: color properties ── */
+
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+
+/* ── Hover: accent color ── */
+
+.hover-accent {
+  transition: color var(--transition-interact);
+}
+.hover-accent:hover,
+.hover-accent:focus-visible {
+  color: var(--color-accent);
+}
+
+
+/* ── Hover: surface highlight ── */
+
+.hover-surface {
+  transition: background-color var(--transition-interact);
+}
+.hover-surface:hover,
+.hover-surface:focus-visible {
+  background-color: var(--color-surface-sunken);
+}
+
+
+/* ── Hover: glass specular shift ──
+   Simulates light catching the surface at a new angle.
+   Contract: consumer sets --glass-specular to change the highlight. */
+
+.hover-glass {
+  position: relative;
+}
+
+.hover-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-specular,
+    linear-gradient(135deg, var(--glass-tint) 0%, transparent 60%));
+  opacity: 0;
+  transition: opacity var(--transition-interact);
+  pointer-events: none;
+}
+
+.hover-glass:hover::after,
+.hover-glass:focus-visible::after {
+  opacity: 1;
+}
+
+
+/* ── Hover: deepen existing shadow ── */
+
+.hover-deepen {
+  transition: box-shadow var(--transition-interact);
+}
+.hover-deepen:hover,
+.hover-deepen:focus-visible {
+  box-shadow: var(--shadow-floating);
+}
+
+
+/* ── Hover: tint with custom color ──
+   Contract: consumer sets --hover-color on the element. */
+
+.hover-tint {
+  transition: color var(--transition-interact);
+}
+.hover-tint:hover,
+.hover-tint:focus-visible {
+  color: var(--hover-color, var(--color-interactive));
+}
+
+
+/* ── Hover: fill background with custom color ──
+   Contract: consumer sets --hover-color on the element. */
+
+.hover-fill {
+  transition: background-color var(--transition-interact);
+}
+.hover-fill:hover,
+.hover-fill:focus-visible {
+  background-color: var(--hover-color, var(--color-interactive));
+  color: var(--color-text-inverse);
+}
+
+
+/* ── Active: press feedback ── */
+
+.active-press:active {
+  transform: scale(0.97);
+}
+
+
+/* ── Disabled: dim and block interaction ── */
+
+.disabled-dim {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+}
+
+
+/* ── Toggle: on state via custom color ──
+   Contract: consumer sets --toggle-color on the element. */
+
+.toggle-on {
+  color: var(--toggle-color, var(--color-interactive));
+  border-color: var(--toggle-color, var(--color-interactive));
+}
+
+
+/* ═══════════════════════════════════════════
+ * Status utilities
+ *
+ * Contract: consumer sets --status-color.
+ * Exceptions layer maps data-attributes to --status-color.
+ * These utilities decide HOW to render it.
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Tinted: status text + subtle background ── */
+
+.status-tinted {
+  color: var(--status-color);
+  background-color: color-mix(in srgb, var(--status-color) 10%, transparent);
+  border-color: color-mix(in srgb, var(--status-color) 25%, transparent);
+}
+
+
+/* ── Solid: status background ── */
+
+.status-solid {
+  color: var(--color-text-inverse);
+  background-color: var(--status-color);
+}
+
+
+/* ═══════════════════════════════════════════
+ * Behavioral utilities
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Engage: surface that responds to attention ── */
+
+.engage {
+  cursor: pointer;
+  transition: box-shadow var(--transition-interact),
+              transform var(--transition-interact);
+}
+
+.engage:hover,
+.engage:focus-visible {
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--lifted));
+}
+
+
+/* ── Dismiss: recede when not relevant ──
+   Base transition only. The [data-dimmed] exception
+   lives in exceptions.css. */
+
+.dismiss {
+  transition: opacity var(--transition-interact),
+              filter var(--transition-interact),
+              box-shadow var(--transition-interact),
+              transform var(--transition-interact);
+}
+
+
+/* ── Pin: anchor during scroll ── */
+
+.pin {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  background-color: var(--color-surface);
+}
+
+
+/* ═══════════════════════════════════════════
+ * GPU layer promotion
+ * ═══════════════════════════════════════════ */
+
+
+/* ── Promote: force GPU compositing layer ──
+   Prevents text vibration when adjacent to
+   hardware-accelerated transforms. See docs/quirks.md. */
+
+.u-promote-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+
+/* ═══════════════════════════════════════════
+ * Accessibility
+ * ═══════════════════════════════════════════ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
