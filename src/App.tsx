@@ -11,7 +11,7 @@ const Data = lazy(() => import("./chapters/Data"));
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={null}>
         <Routes>
           <Route element={<AppLayout />}>
