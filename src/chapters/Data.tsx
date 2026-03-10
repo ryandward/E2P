@@ -19,7 +19,7 @@ export default function Data() {
       <p className="text-caption">Example data with live CUBE CSS styles</p>
 
       <div className="grid">
-        {datasets.map((d, i) => (
+        {datasets.map((d) => (
           <div
             key={d.name}
             className="card engage dismiss"
