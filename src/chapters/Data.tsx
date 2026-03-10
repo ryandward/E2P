@@ -16,6 +16,7 @@ export default function Data() {
     <article className="region center flow">
       <h1>Data</h1>
       <p>Raw datasets, sample metadata, and quality metrics.</p>
+      <p className="text-caption">Example data with live CUBE CSS styles</p>
 
       <div className="grid">
         {datasets.map((d, i) => (

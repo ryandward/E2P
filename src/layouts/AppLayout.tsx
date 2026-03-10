@@ -2,12 +2,12 @@ import { useRef, useLayoutEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 
 const chapters = [
+  { path: "/data", label: "Data" },
   { path: "/expression", label: "Expression" },
   { path: "/histones", label: "Histones" },
   { path: "/chromatin", label: "Chromatin" },
   { path: "/disease", label: "Disease" },
   { path: "/conservation", label: "Conservation" },
-  { path: "/data", label: "Data" },
 ];
 
 export default function AppLayout() {

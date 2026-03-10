@@ -15,7 +15,7 @@ export default function App() {
       <Suspense fallback={null}>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route index element={<Navigate to="/expression" replace />} />
+            <Route index element={<Navigate to="/data" replace />} />
             <Route path="expression" element={<Expression />} />
             <Route path="histones" element={<Histones />} />
             <Route path="chromatin" element={<Chromatin />} />
