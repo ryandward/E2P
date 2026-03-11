@@ -195,10 +195,10 @@ canvas[data-interactive] {
 
 
 /* ═══════════════════════════════════════════
- * Dismiss dimmed state
+ * Recede dimmed state
  * ═══════════════════════════════════════════ */
 
-.dismiss[data-dimmed] {
+.recede[data-dimmed] {
   opacity: var(--opacity-dim);
   filter: grayscale(1);
   box-shadow: none;
@@ -212,11 +212,13 @@ canvas[data-interactive] {
  * ═══════════════════════════════════════════ */
 
 .card[data-selected] {
+  border-color: var(--color-interactive);
   box-shadow: var(--shadow-md);
   transform: translateY(var(--lifted));
 }
 
 .card[data-selected]:hover {
+  border-color: var(--color-interactive-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(var(--lifted));
 }

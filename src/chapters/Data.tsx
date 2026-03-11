@@ -22,7 +22,7 @@ export default function Data() {
         {datasets.map((d) => (
           <div
             key={d.name}
-            className="card stack engage dismiss"
+            className="card stack engage recede"
             style={{ "--stack-gap": "var(--space-element)" } as React.CSSProperties}
             onClick={() => setSelected(selected === d.name ? null : d.name)}
             {...(selected === d.name ? { "data-selected": "" } : {})}
@@ -30,11 +30,11 @@ export default function Data() {
           >
             <div className="cluster spread">
               <p className="weight-semibold">{d.name}</p>
-              <span className="text-label color-muted align-start" style={{ minHeight: "3lh" }}>
+              <span className="text-label color-muted self-start" style={{ minHeight: "3lh" }}>
                 {[
                   ".card",
                   ".engage",
-                  ".dismiss",
+                  ".recede",
                   selected === d.name ? "[data-selected]" : null,
                   selected && selected !== d.name ? "[data-dimmed]" : null,
                 ].filter(Boolean).join(" ")}

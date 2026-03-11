@@ -201,9 +201,9 @@
 }
 
 
-/* ── Align Start: pin item to cross-axis start ── */
+/* ── Self Start: pin item to cross-axis start ── */
 
-.align-start {
+.self-start {
   align-self: flex-start;
 }
 
@@ -376,11 +376,11 @@
 }
 
 
-/* ── Dismiss: recede when not relevant ──
+/* ── Recede: fall back when not relevant ──
    Base transition only. The [data-dimmed] exception
    lives in exceptions.css. */
 
-.dismiss {
+.recede {
   transition: opacity var(--transition-interact),
               filter var(--transition-interact),
               box-shadow var(--transition-interact),
@@ -407,7 +407,7 @@
    Prevents text vibration when adjacent to
    hardware-accelerated transforms. See docs/quirks.md. */
 
-.u-promote-layer {
+.promote-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform;

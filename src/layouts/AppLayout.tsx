@@ -61,7 +61,7 @@ export default function AppLayout() {
           <ul className="app-sidebar__nav stack" role="list">
             {chapters.map(({ path, label }) => (
               <li key={path}>
-                <NavLink to={path} className="app-nav-link u-promote-layer">
+                <NavLink to={path} className="app-nav-link promote-layer">
                   {label}
                 </NavLink>
               </li>
