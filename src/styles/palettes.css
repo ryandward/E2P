@@ -19,6 +19,15 @@
 }
 
 
+/* ── Viridis: perceptually uniform ── */
+
+:root {
+  --palette-vir-low:  #440154;
+  --palette-vir-mid:  #21918c;
+  --palette-vir-high: #fde725;
+}
+
+
 /* ── Diverging: correlation matrix ── */
 
 :root {

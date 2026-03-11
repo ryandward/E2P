@@ -218,12 +218,11 @@ canvas[data-interactive] {
  * active tabs — set by the Heatmap tab logic.
  * ═══════════════════════════════════════════ */
 
-.tab-group__tab[aria-selected="true"] {
+.tab[aria-selected="true"] {
   color: var(--color-text);
-  background-color: var(--color-surface-raised);
 }
 
-.tab-group__tab[aria-selected="true"]::after {
+.tab[aria-selected="true"]::after {
   content: "";
   position: absolute;
   bottom: calc(-1 * var(--border-width));
@@ -232,6 +231,17 @@ canvas[data-interactive] {
   height: var(--border-width-active);
   background: var(--color-text);
 }
+
+
+/* ═══════════════════════════════════════════
+ * Hidden state
+ * ═══════════════════════════════════════════ */
+
+[data-state="hidden"] {
+  display: none;
+}
+
+
 
 
 /* ═══════════════════════════════════════════

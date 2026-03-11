@@ -30,21 +30,12 @@
   padding: var(--space-block);
 }
 
-.app-sidebar__brand {
+.wordmark {
   font-size: var(--text-heading);
   font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tighter);
   color: var(--color-text);
   padding: var(--space-element) var(--space-inline);
-  margin-bottom: var(--space-section);
-}
-
-.app-sidebar__nav-wrapper {
-  position: relative;
-}
-
-.app-sidebar__nav {
-  --stack-gap: var(--space-tight);
 }
 
 
@@ -56,7 +47,7 @@
   right: 0;
   background: var(--gradient-brand);
   border-radius: var(--radius-control);
-  box-shadow: var(--shadow-brand-sm);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
   transition:
     transform var(--duration-normal) var(--ease-spatial),
@@ -130,13 +121,6 @@
   width: 100%;
 }
 
-.fill-track__bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-}
-
 
 /* ── Canvas Frame (visualization container) ── */
 
@@ -147,9 +131,9 @@
 }
 
 
-/* ── Tab Group (tabbed visualization) ── */
+/* ── Tab Reserve (invisible sizer for stable column width) ── */
 
-.tab-group__reserve {
+.tab-reserve {
   height: 0;
   overflow: hidden;
   padding-right: var(--space-element);
@@ -158,18 +142,19 @@
   font-weight: var(--weight-semibold);
 }
 
-.tab-group__sticky-header {
-  z-index: var(--z-nav);
-  background-color: var(--color-surface-raised);
-  box-shadow: var(--shadow-sm);
-}
 
-.tab-group__bar {
+/* ── Tab Bar (border strip beneath tabs) ── */
+
+.tab-bar {
   border-bottom: var(--border-width) solid var(--color-border);
-  background-color: var(--color-surface);
+  background-color: var(--color-surface-sunken);
+  box-shadow: var(--shadow-inner);
 }
 
-.tab-group__tab {
+
+/* ── Tab (individual tab button) ── */
+
+.tab {
   padding: var(--space-inline) var(--space-block);
   font-family: var(--font-code);
   font-size: var(--text-fine);
@@ -181,7 +166,8 @@
   transition: color var(--transition-interact);
 }
 
-.tab-group__tab:hover {
+.tab:hover,
+.tab:focus-visible {
   color: var(--color-text);
 }
 
@@ -196,11 +182,6 @@
   white-space: nowrap;
 }
 
-.axis-label__cell {
-  position: relative;
-  height: 100%;
-}
-
 .axis-label--row {
   display: flex;
   align-items: center;
@@ -211,7 +192,7 @@
   --col-angle: 60deg;
   position: absolute;
   bottom: var(--space-1);
-  left: calc(var(--col-center) - (1lh / 2) * cos(var(--col-angle)));
+  left: var(--col-center);
   line-height: var(--leading-none);
   transform-origin: 0% 100%;
   transform: rotate(calc(-1 * var(--col-angle)));
@@ -219,17 +200,10 @@
 }
 
 
-/* ── Heatmap Panel ── */
-
-.heatmap-panel__canvas-wrapper {
-  position: relative;
-}
-
-
 /* ── Heatmap Tooltip ── */
 
 .heatmap-tooltip {
-  background: var(--color-surface-raised);
+  background: var(--color-control);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-element) var(--space-inline);
@@ -239,34 +213,20 @@
   box-shadow: var(--shadow-raised);
 }
 
-.heatmap-tooltip__title {
-  font-weight: var(--weight-semibold);
-  color: var(--color-text);
-}
 
-.heatmap-tooltip__secondary {
-  color: var(--color-text-muted);
-}
+/* ── Gradient Bar (color-scale fill) ── */
 
-
-/* ── Heatmap Legend ── */
-
-.heatmap-legend__label {
-  color: var(--color-text-muted);
-}
-
-.heatmap-legend__gradient {
+.gradient-bar {
   border-radius: var(--radius-sm);
   background: linear-gradient(to right, var(--palette-seq-low), var(--palette-seq-mid), var(--palette-seq-high));
 }
 
-.heatmap-legend__gradient--div {
+.gradient-bar--div {
   background: linear-gradient(to right, var(--palette-div-neg), var(--palette-div-zero), var(--palette-div-pos));
 }
 
-.heatmap-legend__caption {
-  color: var(--color-text-muted);
-  font-weight: var(--weight-normal);
+.gradient-bar--vir {
+  background: linear-gradient(to right, var(--palette-vir-low), var(--palette-vir-mid), var(--palette-vir-high));
 }
 
 
@@ -277,41 +237,39 @@
   border-left: var(--border-width) solid var(--color-border);
 }
 
-.canopy__section {
+
+/* ── Gauge (numeric readout) ── */
+
+.gauge {
   font-family: var(--font-code);
   font-size: var(--text-fine);
   font-weight: var(--weight-semibold);
-}
-
-.canopy__section + .canopy__section {
-  border-top: var(--border-width) solid var(--color-border-frosted);
-  padding-top: var(--space-inline);
-}
-
-.canopy__label {
-  font-size: var(--text-fine);
-  font-weight: var(--weight-bold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wider);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-element);
-}
-
-.canopy__param-value {
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-}
-
-.canopy__metric {
   font-variant-numeric: tabular-nums;
 }
 
-.canopy__select-wrapper {
+/* ── Dropdown ── */
+
+.dropdown {
   display: grid;
   align-items: center;
 }
 
-.canopy__select-icon {
+.dropdown > select {
+  grid-area: 1 / 1;
+  background-color: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-element) var(--space-inline);
+  padding-inline-end: calc(var(--space-inline) * 2);
+  font-family: var(--font-code);
+  font-size: var(--text-fine);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition-interact);
+}
+
+.dropdown > svg {
   grid-area: 1 / 1;
   justify-self: end;
   margin-inline-end: var(--space-element);
@@ -319,89 +277,61 @@
   color: var(--color-text-muted);
 }
 
-.canopy__select {
-  grid-area: 1 / 1;
-  appearance: none;
-  background-color: color-mix(in srgb, var(--color-surface-raised) 50%, transparent);
-  border: var(--border-width) solid var(--color-border-frosted);
-  border-radius: var(--radius-control);
-  padding: var(--space-element) var(--space-inline);
-  padding-inline-end: calc(var(--space-inline) * 2);
-  font: inherit;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: border-color var(--transition-interact);
-}
 
-.canopy__select:focus {
-  outline: none;
-  border-color: var(--color-ring);
-}
+/* ── Slider ── */
 
-.canopy__params input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: var(--space-1);
+.slider {
+  height: var(--space-tight);
   background: var(--color-surface-sunken);
   border-radius: var(--radius-pill);
   border: none;
 }
 
-.canopy__params input[type="range"]::-webkit-slider-thumb {
+.slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: var(--space-4);
-  height: var(--space-4);
+  width: var(--space-block);
+  height: var(--space-block);
   border-radius: var(--radius-full);
-  background: var(--color-surface-raised);
-  border: none;
+  background: var(--color-control);
+  border: var(--border-width) solid var(--color-border);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  transition: background var(--transition-interact),
+              border-color var(--transition-interact);
 }
 
-.canopy__params input[type="range"]::-moz-range-track {
-  height: var(--space-1);
+.slider:active::-webkit-slider-thumb {
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--lifted));
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: var(--space-tight);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-pill);
+}
+
+.slider::-moz-range-track {
+  height: var(--space-tight);
   background: var(--color-surface-sunken);
   border-radius: var(--radius-pill);
   border: none;
 }
 
-.canopy__params input[type="range"]::-moz-range-thumb {
-  width: var(--space-4);
-  height: var(--space-4);
+.slider::-moz-range-thumb {
+  width: var(--space-block);
+  height: var(--space-block);
   border-radius: var(--radius-full);
-  background: var(--color-surface-raised);
-  border: none;
+  background: var(--color-control);
+  border: var(--border-width) solid var(--color-border);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  transition: background var(--transition-interact),
+              border-color var(--transition-interact);
 }
 
-
-/* ── Fill Track ── */
-
-.fill-track {
-  position: relative;
-  overflow: hidden;
-  height: var(--fill-track-height);
-  width: 100%;
-}
-
-.fill-track__bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-}
-
-
-/* ── Legend Bar ── */
-
-.legend-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-element);
-}
-
-.legend-bar__fill {
-  flex: 1;
-  height: var(--legend-bar-height);
+.slider:active::-moz-range-thumb {
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--lifted));
+  cursor: pointer;
 }

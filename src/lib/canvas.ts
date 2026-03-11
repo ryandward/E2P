@@ -48,9 +48,6 @@ export function viridisColor(t: number): string {
   return VIRIDIS[idx];
 }
 
-export function viridisTextColor(t: number): string {
-  return t < 0.55 ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)";
-}
 
 /* ── Palette reader — parse CSS custom properties once ── */
 
@@ -107,9 +104,6 @@ export function heatmapColor(t: number): string {
   return lerpRGB(seqMid!, seqHigh!, (c - 0.5) * 2);
 }
 
-export function heatmapTextColor(t: number): string {
-  return t > 0.45 ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)";
-}
 
 /* ── Diverging scale ── */
 
@@ -122,9 +116,6 @@ export function divergingColor(r: number): string {
   return lerpRGB(divZero!, divNeg!, -t);
 }
 
-export function divergingTextColor(r: number): string {
-  return Math.abs(r) > 0.5 ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)";
-}
 
 /* ── Seeded PRNG (Mulberry32) ── */
 
@@ -215,3 +206,17 @@ export function getLabelColor(): string {
   }
   return _labelColor;
 }
+
+/** Read a CSS custom property and return its value in px. */
+export function getCssVariableAsPx(varName: string): number {
+  const rootStyle = getComputedStyle(document.documentElement);
+  const val = rootStyle.getPropertyValue(varName).trim();
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+  if (val.endsWith("rem")) {
+    const baseFontSize = parseFloat(rootStyle.fontSize) || 16;
+    return num * baseFontSize;
+  }
+  return num;
+}
+

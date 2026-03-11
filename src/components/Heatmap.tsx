@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { FadeTransition, StableCounter } from "stablekit.ts";
 import { ticker } from "../lib/AnimationTicker";
-import { setupCanvas } from "../lib/canvas";
+import { setupCanvas, getCssVariableAsPx } from "../lib/canvas";
 import { useScrollSnap } from "../hooks/useScrollSnap";
 import { SpringAnimator } from "../lib/SpringAnimator";
 
@@ -54,7 +54,7 @@ export interface HeatmapLegend {
   low: string;
   high: string;
   caption: string;
-  /** CSS class for the gradient bar (e.g. "heatmap-legend__gradient--seq") */
+  /** CSS class for the gradient bar (e.g. "gradient-bar--div") */
   gradientClass?: string;
 }
 
@@ -90,7 +90,6 @@ export interface HeatmapPanel {
 export interface HeatmapProps {
   header?: ReactNode;
   columns: { key: string; label: string }[];
-  columnLabelHeight: number;
   longestRowLabel: string;
   loading: boolean;
   panels: HeatmapPanel[];
@@ -103,7 +102,6 @@ export interface HeatmapProps {
 export function Heatmap({
   header,
   columns,
-  columnLabelHeight,
   longestRowLabel,
   loading,
   panels,
@@ -112,8 +110,11 @@ export function Heatmap({
 }: HeatmapProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const tabGroupRef = useRef<HTMLDivElement>(null);
+  const colsContainerRef = useRef<HTMLDivElement>(null);
   const [frameScale, setFrameScale] = useState(1);
   const [activeTab, setActiveTab] = useState<HeatmapTab>(HEATMAP_TABS[0]);
+  const [colLabelHeight, setColLabelHeight] = useState(0);
+  const [colOverhang, setColOverhang] = useState(0);
 
   const cellsW = columns.length * CELL_STEP;
   const activePanel = panels.find((p) => p.tab === activeTab) ?? panels[0];
@@ -122,6 +123,34 @@ export function Heatmap({
   const [snapTrigger, setSnapTrigger] = useState(0);
   const requestSnap = useCallback(() => setSnapTrigger((n) => n + 1), []);
   useScrollSnap(tabGroupRef, activeTab + "|" + snapTrigger);
+
+  // Measure column label geometry from the DOM.
+  // offsetWidth gives unrotated text width (CSS transform doesn't affect it).
+  // Height and overhang are derived from exact text width + angle from CSS.
+  useLayoutEffect(() => {
+    const container = colsContainerRef.current;
+    if (!container) return;
+    const labels = container.querySelectorAll<HTMLSpanElement>(".axis-label--col");
+    if (!labels.length) return;
+
+    const sample = labels[0];
+    const style = getComputedStyle(sample);
+    const angleDeg = parseFloat(style.getPropertyValue("--col-angle")) || 60;
+    const rad = (angleDeg * Math.PI) / 180;
+    const sinA = Math.sin(rad);
+    const cosA = Math.cos(rad);
+    const lh = parseFloat(style.lineHeight) || parseFloat(style.fontSize);
+
+    let maxH = 0;
+    labels.forEach((el) => {
+      const h = el.offsetWidth * sinA + lh * cosA;
+      if (h > maxH) maxH = h;
+    });
+
+    const lastWidth = labels[labels.length - 1].offsetWidth;
+    setColLabelHeight(Math.ceil(maxH));
+    setColOverhang(Math.max(0, Math.ceil(lastWidth * cosA - CELL / 2 - GAP)));
+  }, [columns]);
 
   // Replay spring animation when tab switches
   const prevTabRef = useRef(activeTab);
@@ -159,23 +188,22 @@ export function Heatmap({
         "--frame-zoom": frameScale < 1 ? frameScale : undefined,
       } as React.CSSProperties}
     >
-      {header && <div className="canvas-frame__header">{header}</div>}
-      {header && <hr />}
+      {header && <div>{header}</div>}
       <div className="sidebar">
       {/* ── Left column: tab-group grid ── */}
       <div
         ref={tabGroupRef}
-        className="tab-grid tab-group"
+        className="tab-grid"
         data-active-tab={activeTab}
-        style={{ "--tab-grid-data-col": `calc(${cellsW}px + var(--space-element) * 2)` } as React.CSSProperties}
+        style={{ "--tab-grid-data-col": `${cellsW}px`, "--col-label-overhang": `${colOverhang}px` } as React.CSSProperties}
       >
         {/* Sticky header: tabs + column labels */}
-        <div className="tab-grid__header tab-group__sticky-header">
-          <div className="cluster tab-grid__bar" role="tablist">
+        <div className="tab-grid__header surface-raised shadow-md radius-sm">
+          <div className="cluster tab-grid__bar tab-bar" role="tablist">
             {HEATMAP_TABS.map((tab) => (
               <button
                 key={tab}
-                className="tab-group__tab"
+                className="tab"
                 role="tab"
                 aria-selected={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
@@ -188,14 +216,14 @@ export function Heatmap({
           <StableCounter
             value=""
             reserve={longestRowLabel}
-            className="tab-group__reserve"
+            className="tab-reserve"
           />
           {/* Shared column labels */}
-          <div className="tab-grid__columns" style={{ height: columnLabelHeight }}>
+          <div ref={colsContainerRef} className="tab-grid__columns" style={{ height: colLabelHeight }}>
             {columns.map((col) => (
               <div
                 key={col.key}
-                className="axis-label__cell"
+                className="anchor"
                 style={{
                   width: CELL_STEP,
                   "--col-center": `${CELL / 2}px`,
@@ -211,20 +239,16 @@ export function Heatmap({
 
         {/* Panels */}
         {panels.map((panel) => (
-          <HeatmapPanelView key={panel.tab} panel={panel} cellsW={cellsW} cols={columns.length} />
+          <HeatmapPanelView key={panel.tab} panel={panel} cellsW={cellsW} cols={columns.length} state={activeTab === panel.tab ? "active" : "hidden"} />
         ))}
       </div>
 
       {/* ── Right column: canopy ── */}
       <div className="sticky-panel canopy">
-        <div className="canopy__section">
-          <div className="canopy__label">Color Scale</div>
-          <div className="legend-bar heatmap-legend">
-            <span className="heatmap-legend__label">{legend.low}</span>
-            <div className={`legend-bar__fill heatmap-legend__gradient${legend.gradientClass ? ` ${legend.gradientClass}` : ""}`} />
-            <span className="heatmap-legend__label">{legend.high}</span>
-          </div>
-          <span className="heatmap-legend__caption">{legend.caption}</span>
+        <div className="legend-bar tab surface-sunken shadow-inner radius-sm">
+          <span className="color-muted">{legend.low}</span>
+          <div className={`legend-bar__fill gradient-bar${legend.gradientClass ? ` ${legend.gradientClass}` : ""}`} />
+          <span className="color-muted">{legend.high}</span>
         </div>
 
         {controls.map((ctrl) => (
@@ -242,7 +266,7 @@ export function Heatmap({
 
 // ── Panel renderer ──
 
-function HeatmapPanelView({ panel, cellsW, cols }: { panel: HeatmapPanel; cellsW: number; cols: number }) {
+function HeatmapPanelView({ panel, cellsW, cols, state }: { panel: HeatmapPanel; cellsW: number; cols: number; state: "active" | "hidden" }) {
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; data: HeatmapTooltipData } | null>(null);
 
@@ -302,7 +326,7 @@ function HeatmapPanelView({ panel, cellsW, cols }: { panel: HeatmapPanel; cellsW
   return (
     <>
       {/* Row labels (col 1) */}
-      <div className="tab-grid__labels" data-tab={panel.tab}>
+      <div className="tab-grid__labels surface-raised shadow-md radius-sm" data-state={state}>
         {panel.rowLabels.map((row) => (
           <div
             key={row.key}
@@ -314,8 +338,8 @@ function HeatmapPanelView({ panel, cellsW, cols }: { panel: HeatmapPanel; cellsW
         ))}
       </div>
       {/* Canvas (col 2) */}
-      <div data-tab={panel.tab}>
-        <div className="heatmap-panel__canvas-wrapper">
+      <div data-state={state}>
+        <div className="anchor">
           <canvas
             ref={panel.canvasRef}
             onMouseMove={handleMouseMove}
@@ -346,11 +370,10 @@ function HeatmapPanelView({ panel, cellsW, cols }: { panel: HeatmapPanel; cellsW
 function CanopyControl({ control, onCommit }: { control: HeatmapControl; onCommit: () => void }) {
   if (control.type === "select") {
     return (
-      <div className="canopy__section">
-        <div className="canopy__label">{control.label}</div>
-        <div className="canopy__select-wrapper">
+      <div className="stack">
+        <div className="text-label color-muted">{control.label}</div>
+        <div className="dropdown">
           <select
-            className="canopy__select"
             value={control.value}
             onChange={(e) => { control.onChange(e.target.value); onCommit(); }}
           >
@@ -358,7 +381,7 @@ function CanopyControl({ control, onCommit }: { control: HeatmapControl; onCommi
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <svg className="canopy__select-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </svg>
         </div>
@@ -368,10 +391,11 @@ function CanopyControl({ control, onCommit }: { control: HeatmapControl; onCommi
 
   if (control.type === "range") {
     return (
-      <div className="canopy__section">
-        <div className="canopy__label">{control.label}</div>
-        <div className="control-grid canopy__params">
+      <div className="stack">
+        <div className="text-label color-muted">{control.label}</div>
+        <div className="slider-group">
           <input
+            className="slider"
             type="range"
             min={control.min}
             max={control.max}
@@ -380,7 +404,7 @@ function CanopyControl({ control, onCommit }: { control: HeatmapControl; onCommi
             onChange={(e) => control.onChange(Number(e.target.value))}
             onPointerUp={onCommit}
           />
-          <StableCounter className="canopy__param-value" value={control.display} reserve={control.reserve} />
+          <StableCounter className="gauge" value={control.display} reserve={control.reserve} />
         </div>
       </div>
     );
@@ -388,9 +412,9 @@ function CanopyControl({ control, onCommit }: { control: HeatmapControl; onCommi
 
   if (control.type === "metric") {
     return (
-      <div className="canopy__section">
-        <div className="canopy__label">{control.label}</div>
-        <StableCounter className="canopy__metric" value={control.value} reserve={control.reserve} />
+      <div className="stack">
+        <div className="text-label color-muted">{control.label}</div>
+        <StableCounter className="gauge" value={control.value} reserve={control.reserve} />
       </div>
     );
   }
@@ -411,7 +435,7 @@ export interface GridConfig {
   mask?: (row: number, col: number) => boolean;
 }
 
-export function AnimatedGrid(config: GridConfig) {
+export function useAnimatedGrid(config: GridConfig) {
   const {
     maxSlots,
     cols,
@@ -429,6 +453,9 @@ export function AnimatedGrid(config: GridConfig) {
   const pulseTickRef = useRef<((now: number) => boolean) | null>(null);
   const flashRef = useRef<{ row: number; col: number; scale: number; vel: number } | null>(null);
   const flashTickRef = useRef<((now: number) => boolean) | null>(null);
+  const colorFnRef = useRef(colorFn);
+  colorFnRef.current = colorFn;
+  const cellRadiusRef = useRef(getCssVariableAsPx("--radius-sm"));
 
   const paint = useCallback((positions: Float64Array) => {
     const canvas = canvasRef.current;
@@ -440,19 +467,21 @@ export function AnimatedGrid(config: GridConfig) {
     ctx.clearRect(0, 0, widthPx, h);
 
     const flash = flashRef.current;
+    const color = colorFnRef.current;
+    const r = cellRadiusRef.current;
 
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
         if (mask && !mask(i, j)) continue;
         const t = positions[i * cols + j];
-        ctx.fillStyle = colorFn(t);
+        ctx.fillStyle = color(t);
         ctx.beginPath();
         if (flash && flash.row === i && flash.col === j) {
           const sz = cell * flash.scale;
           const off = (cell - sz) / 2;
-          ctx.roundRect(j * step + off, i * step + off, sz, sz, 3);
+          ctx.roundRect(j * step + off, i * step + off, sz, sz, r);
         } else {
-          ctx.roundRect(j * step, i * step, cell, cell, 3);
+          ctx.roundRect(j * step, i * step, cell, cell, r);
         }
         ctx.fill();
       }
@@ -543,6 +572,9 @@ export function AnimatedGrid(config: GridConfig) {
       flashTickRef.current = tick;
       ticker.subscribe(tick);
     },
+    repaint() {
+      animatorRef.current?.repaint();
+    },
     replay(origin?: number) {
       animatorRef.current?.replay(origin);
     },
@@ -616,13 +648,13 @@ export function HeatmapTooltip({ show, x, y, title, rows, secondary, containerW,
       className="data-tooltip heatmap-tooltip"
       style={{ left, top }}
     >
-      <div className="heatmap-tooltip__title">{content.title}</div>
+      <div className="weight-semibold">{content.title}</div>
       {content.rows.map((row) => (
         <div key={row.label}>
           {row.label}: <strong>{row.value}</strong>
         </div>
       ))}
-      {content.secondary && <div className="heatmap-tooltip__secondary">{content.secondary}</div>}
+      {content.secondary && <div className="color-muted">{content.secondary}</div>}
     </FadeTransition>
   );
 }

@@ -176,20 +176,21 @@
 
 
   /* ── Elevation ──
-     Progressive shadow depth. Brand shadow for glowing CTAs. */
-  --shadow-xs:    0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.04),
-                  0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                  0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg:    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-                  0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl:    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-                  0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  --shadow-brand: 0 4px 14px -3px rgba(91, 74, 238, 0.35);
-  --shadow-brand-sm: 0 1px 4px rgba(91, 74, 238, 0.2);
-  --shadow-brand-lg: 0 8px 24px -4px rgba(91, 74, 238, 0.4);
+     Progressive shadow depth.
+     --shadow-color sets the tint; dark mode increases it for visibility. */
+  --shadow-color: hsl(0 0% 0% / 0.1);
+  --shadow-color-subtle: hsl(0 0% 0% / 0.05);
+
+  --shadow-xs:    0 1px 2px 0 var(--shadow-color-subtle);
+  --shadow-sm:    0 1px 3px var(--shadow-color-subtle),
+                  0 1px 2px var(--shadow-color);
+  --shadow-md:    0 4px 6px -1px var(--shadow-color),
+                  0 2px 4px -2px var(--shadow-color);
+  --shadow-lg:    0 10px 15px -3px var(--shadow-color),
+                  0 4px 6px -4px var(--shadow-color);
+  --shadow-xl:    0 20px 25px -5px var(--shadow-color),
+                  0 8px 10px -6px var(--shadow-color);
+  --shadow-inner: inset 0 2px 4px 0 var(--shadow-color);
 
 
   /* ── Backdrop ── */
@@ -249,10 +250,10 @@
   --sidebar-main-width:  1fr;
   --sidebar-width:       14rem;
   --sidebar-gap:         var(--grid-gap);
-  --control-grid-main:   1fr;
-  --control-grid-aside:  auto;
+  --slider-group-main:   1fr;
+  --slider-group-aside:  auto;
   --fill-track-height:   var(--space-2);
-  --legend-bar-height:   10px;
+  --legend-bar-height:   0.625rem;
   --walkthrough-split:   50%;
   --frame-zoom:          1;
   --app-sidebar-width:   12rem;
@@ -291,6 +292,9 @@
   /* ── Accent (brand) ── */
   --color-accent:     var(--brand-600);
   --color-accent-dim: var(--brand-700);
+
+  /* ── Controls ── */
+  --color-control: var(--neutral-400);
 
   /* ── Focus ── */
   --color-ring: var(--brand-600);
@@ -347,8 +351,6 @@
   --z-dialog:  var(--z-modal);
   --z-popover: var(--z-dropdown);
 
-  /* ── Layout ── */
-  --nav-height: calc(var(--text-body-sm) * var(--leading-normal) + 2 * var(--space-inline) + 1px);
 }
 
 
@@ -379,6 +381,9 @@
     --color-accent:     var(--brand-400);
     --color-accent-dim: var(--brand-300);
 
+    /* ── Controls ── */
+    --color-control: var(--neutral-500);
+
     /* ── Focus ── */
     --color-ring: var(--brand-400);
 
@@ -397,6 +402,10 @@
 
     /* ── Selection ── */
     --color-selection: var(--neutral-700);
+
+    /* ── Shadows ── */
+    --shadow-color: hsl(0 0% 0% / 0.35);
+    --shadow-color-subtle: hsl(0 0% 0% / 0.2);
 }
 
 
@@ -464,9 +473,6 @@ code, pre {
 }
 
 button {
-  appearance: none;
-  font: inherit;
-  color: inherit;
   background: none;
   border: none;
   cursor: pointer;
@@ -491,8 +497,8 @@ hr {
 :focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
-  border-radius: inherit;
 }
+
 
 ::selection {
   background: var(--color-selection);

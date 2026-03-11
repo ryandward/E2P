@@ -186,12 +186,18 @@
 .shadow-lg    { box-shadow: var(--shadow-lg); }
 .shadow-xl    { box-shadow: var(--shadow-xl); }
 .shadow-inner { box-shadow: var(--shadow-inner); }
-.shadow-brand { box-shadow: var(--shadow-brand); }
 
 
 /* ═══════════════════════════════════════════
  * Layout utilities
  * ═══════════════════════════════════════════ */
+
+
+/* ── Anchor: positioning context for absolute children ── */
+
+.anchor {
+  position: relative;
+}
 
 
 /* ── Spread: push flex children to opposite ends ── */

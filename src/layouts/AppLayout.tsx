@@ -29,8 +29,8 @@ export default function AppLayout() {
 
   return (
     <div className="app-layout">
-      <aside className="app-sidebar">
-        <div className="app-sidebar__brand cluster spread">
+      <aside className="app-sidebar stack">
+        <div className="wordmark cluster spread">
           <span>E2P</span>
           <button
             onClick={toggle}
@@ -49,7 +49,7 @@ export default function AppLayout() {
             )}
           </button>
         </div>
-        <nav aria-label="Chapters" ref={navRef} className="app-sidebar__nav-wrapper">
+        <nav aria-label="Chapters" ref={navRef} className="anchor">
           <div
             className="app-nav-indicator"
             style={{
@@ -58,7 +58,7 @@ export default function AppLayout() {
               opacity: indicator.ready ? 1 : 0,
             }}
           />
-          <ul className="app-sidebar__nav stack" role="list">
+          <ul className="stack" role="list">
             {chapters.map(({ path, label }) => (
               <li key={path}>
                 <NavLink to={path} className="app-nav-link promote-layer">
