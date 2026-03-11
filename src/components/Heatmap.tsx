@@ -103,7 +103,6 @@ export function Heatmap({
   header,
   columns,
   longestRowLabel,
-  loading,
   panels,
   controls,
   hint,
@@ -239,7 +238,7 @@ export function Heatmap({
 
         {/* Panels */}
         {panels.map((panel) => (
-          <HeatmapPanelView key={panel.tab} panel={panel} cellsW={cellsW} cols={columns.length} state={activeTab === panel.tab ? "active" : "hidden"} />
+          <HeatmapPanelView key={panel.tab} panel={panel} cols={columns.length} state={activeTab === panel.tab ? "active" : "hidden"} />
         ))}
       </div>
 
@@ -266,7 +265,7 @@ export function Heatmap({
 
 // ── Panel renderer ──
 
-function HeatmapPanelView({ panel, cellsW, cols, state }: { panel: HeatmapPanel; cellsW: number; cols: number; state: "active" | "hidden" }) {
+function HeatmapPanelView({ panel, cols, state }: { panel: HeatmapPanel; cols: number; state: "active" | "hidden" }) {
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; data: HeatmapTooltipData } | null>(null);
 
