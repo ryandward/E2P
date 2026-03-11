@@ -211,6 +211,33 @@ canvas[data-interactive] {
  * Card selection
  * ═══════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════
+ * Tab group selected state
+ *
+ * aria-selected is the semantic attribute for
+ * active tabs — set by the Heatmap tab logic.
+ * ═══════════════════════════════════════════ */
+
+.tab-group__tab[aria-selected="true"] {
+  color: var(--color-text);
+  background-color: var(--color-surface-raised);
+}
+
+.tab-group__tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: calc(-1 * var(--border-width));
+  left: 0;
+  right: 0;
+  height: var(--border-width-active);
+  background: var(--color-text);
+}
+
+
+/* ═══════════════════════════════════════════
+ * Card selection
+ * ═══════════════════════════════════════════ */
+
 .card[data-selected] {
   border-color: var(--color-interactive);
   box-shadow: var(--shadow-md);

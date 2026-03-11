@@ -13,6 +13,7 @@
 
 @import "./reset.css" layer(reset);
 @import "./tokens.css" layer(tokens);
+@import "./palettes.css" layer(tokens);
 @import "./compositions.css" layer(compositions);
 @import "./blocks.css" layer(blocks);
 @import "./utilities.css" layer(utilities);

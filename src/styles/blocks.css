@@ -138,6 +138,261 @@
 }
 
 
+/* ── Canvas Frame (visualization container) ── */
+
+.canvas-frame {
+  border-radius: var(--radius-surface);
+  border: var(--border-width) solid var(--color-border);
+  background-color: var(--color-surface-raised);
+}
+
+
+/* ── Tab Group (tabbed visualization) ── */
+
+.tab-group__reserve {
+  height: 0;
+  overflow: hidden;
+  padding-right: var(--space-element);
+  font-size: var(--text-fine);
+  font-family: var(--font-code);
+  font-weight: var(--weight-semibold);
+}
+
+.tab-group__sticky-header {
+  z-index: var(--z-nav);
+  background-color: var(--color-surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-group__bar {
+  border-bottom: var(--border-width) solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.tab-group__tab {
+  padding: var(--space-inline) var(--space-block);
+  font-family: var(--font-code);
+  font-size: var(--text-fine);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-muted);
+  position: relative;
+  transition: color var(--transition-interact);
+}
+
+.tab-group__tab:hover {
+  color: var(--color-text);
+}
+
+
+/* ── Axis Label ── */
+
+.axis-label {
+  font-size: var(--text-fine);
+  font-family: var(--font-code);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.axis-label__cell {
+  position: relative;
+  height: 100%;
+}
+
+.axis-label--row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.axis-label--col {
+  --col-angle: 60deg;
+  position: absolute;
+  bottom: var(--space-1);
+  left: calc(var(--col-center) - (1lh / 2) * cos(var(--col-angle)));
+  line-height: var(--leading-none);
+  transform-origin: 0% 100%;
+  transform: rotate(calc(-1 * var(--col-angle)));
+  will-change: transform;
+}
+
+
+/* ── Heatmap Panel ── */
+
+.heatmap-panel__canvas-wrapper {
+  position: relative;
+}
+
+
+/* ── Heatmap Tooltip ── */
+
+.heatmap-tooltip {
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-element) var(--space-inline);
+  font-size: var(--text-fine);
+  font-family: var(--font-code);
+  line-height: var(--leading-relaxed);
+  box-shadow: var(--shadow-raised);
+}
+
+.heatmap-tooltip__title {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.heatmap-tooltip__secondary {
+  color: var(--color-text-muted);
+}
+
+
+/* ── Heatmap Legend ── */
+
+.heatmap-legend__label {
+  color: var(--color-text-muted);
+}
+
+.heatmap-legend__gradient {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(to right, var(--palette-seq-low), var(--palette-seq-mid), var(--palette-seq-high));
+}
+
+.heatmap-legend__gradient--div {
+  background: linear-gradient(to right, var(--palette-div-neg), var(--palette-div-zero), var(--palette-div-pos));
+}
+
+.heatmap-legend__caption {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-normal);
+}
+
+
+/* ── Canopy (sticky instrumentation panel) ── */
+
+.canopy {
+  z-index: var(--z-nav);
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.canopy__section {
+  font-family: var(--font-code);
+  font-size: var(--text-fine);
+  font-weight: var(--weight-semibold);
+}
+
+.canopy__section + .canopy__section {
+  border-top: var(--border-width) solid var(--color-border-frosted);
+  padding-top: var(--space-inline);
+}
+
+.canopy__label {
+  font-size: var(--text-fine);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-element);
+}
+
+.canopy__param-value {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.canopy__metric {
+  font-variant-numeric: tabular-nums;
+}
+
+.canopy__select-wrapper {
+  display: grid;
+  align-items: center;
+}
+
+.canopy__select-icon {
+  grid-area: 1 / 1;
+  justify-self: end;
+  margin-inline-end: var(--space-element);
+  pointer-events: none;
+  color: var(--color-text-muted);
+}
+
+.canopy__select {
+  grid-area: 1 / 1;
+  appearance: none;
+  background-color: color-mix(in srgb, var(--color-surface-raised) 50%, transparent);
+  border: var(--border-width) solid var(--color-border-frosted);
+  border-radius: var(--radius-control);
+  padding: var(--space-element) var(--space-inline);
+  padding-inline-end: calc(var(--space-inline) * 2);
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition-interact);
+}
+
+.canopy__select:focus {
+  outline: none;
+  border-color: var(--color-ring);
+}
+
+.canopy__params input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: var(--space-1);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-pill);
+  border: none;
+}
+
+.canopy__params input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+  border: none;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.canopy__params input[type="range"]::-moz-range-track {
+  height: var(--space-1);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-pill);
+  border: none;
+}
+
+.canopy__params input[type="range"]::-moz-range-thumb {
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+  border: none;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+
+/* ── Fill Track ── */
+
+.fill-track {
+  position: relative;
+  overflow: hidden;
+  height: var(--fill-track-height);
+  width: 100%;
+}
+
+.fill-track__bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
+
 /* ── Legend Bar ── */
 
 .legend-bar {

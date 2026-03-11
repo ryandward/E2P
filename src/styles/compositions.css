@@ -150,6 +150,17 @@
   padding-right: var(--space-element);
 }
 
+.tab-grid__bar {
+  grid-column: 1 / -1;
+  --cluster-gap: 0;
+}
+
+.tab-grid__columns {
+  display: flex;
+  align-items: flex-end;
+  overflow: visible;
+}
+
 .tab-grid > :nth-child(even),
 .tab-grid__header > :nth-child(even) {
   padding-inline: var(--space-element);

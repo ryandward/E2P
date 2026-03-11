@@ -1,0 +1,49 @@
+/*
+ * Data visualization palettes
+ *
+ * Color ramps for canvas-rendered data grids.
+ * JS reads these once at init via getComputedStyle,
+ * then interpolates per-cell at render time.
+ *
+ * The legend gradient in blocks.css references
+ * these same tokens — single source of truth.
+ */
+
+
+/* ── Sequential: z-score heatmap ── */
+
+:root {
+  --palette-seq-low:  hsl(220, 20%, 95%);
+  --palette-seq-mid:  hsl(228, 47%, 55%);
+  --palette-seq-high: hsl(235, 75%, 30%);
+}
+
+
+/* ── Diverging: correlation matrix ── */
+
+:root {
+  --palette-div-neg:  hsl(230, 100%, 50%);
+  --palette-div-zero: hsl(0, 0%, 100%);
+  --palette-div-pos:  hsl(0, 100%, 50%);
+}
+
+
+/* ── ChromHMM chromatin states (discrete) ── */
+
+:root {
+  --state-1:  hsl(0, 80%, 50%);      /* Active TSS */
+  --state-2:  hsl(15, 75%, 55%);     /* Flanking TSS */
+  --state-3:  hsl(45, 85%, 50%);     /* Strong Enhancer */
+  --state-4:  hsl(50, 60%, 65%);     /* Weak Enhancer */
+  --state-5:  hsl(80, 55%, 50%);     /* Enhancer/Gene */
+  --state-6:  hsl(140, 65%, 40%);    /* Txn Elongation */
+  --state-7:  hsl(140, 35%, 60%);    /* Weak Txn */
+  --state-8:  hsl(195, 70%, 50%);    /* Insulator */
+  --state-9:  hsl(270, 35%, 45%);    /* Heterochromatin */
+  --state-10: hsl(330, 55%, 55%);    /* Bivalent TSS */
+  --state-11: hsl(340, 40%, 65%);    /* Bivalent Enhancer */
+  --state-12: hsl(260, 50%, 40%);    /* Polycomb Repressed */
+  --state-13: hsl(40, 8%, 88%);      /* Quiescent */
+  --state-14: hsl(200, 25%, 50%);    /* ZNF/Repeats */
+  --state-15: hsl(40, 10%, 82%);     /* Low Signal */
+}
