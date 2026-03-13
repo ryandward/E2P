@@ -23,9 +23,13 @@ import type { PlotSpec, SceneGraph, BandScale } from "../../lib/plot/types";
 
 export type { HoverEvent };
 
+export type BandSceneGraph = SceneGraph & {
+  scales: { x: BandScale; y: BandScale };
+};
+
 export interface GridPlotProps {
   spec: PlotSpec;
-  graph: SceneGraph;
+  graph: BandSceneGraph;
   onHover?: (event: HoverEvent | null) => void;
   onClick?: (hit: HitResult) => void;
   /** Longest possible row label (for stable column sizing across views). */
@@ -59,8 +63,8 @@ export function GridPlot({
 
   useScrollSnap(gridRef, snapKey);
 
-  const xScale = graph.scales.x as BandScale;
-  const yScale = graph.scales.y as BandScale;
+  const xScale = graph.scales.x;
+  const yScale = graph.scales.y;
   const xTicks = graph.axes.x.ticks;
   const yTicks = graph.axes.y.ticks;
   const xStep = xScale.step;

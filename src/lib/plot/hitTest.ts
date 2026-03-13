@@ -16,6 +16,8 @@ import type {
   PathBuffers,
 } from "./types";
 
+type HitTestFn = (px: number, py: number, buffers: GeomBuffers) => number;
+
 // ── Hit Result ──
 
 export interface HitResult {
@@ -30,16 +32,13 @@ export interface HitResult {
 
 // ── Per-Geom Hit Testers ──
 
-type HitTestFn = (px: number, py: number, buffers: GeomBuffers) => number;
-
 /**
  * AABB containment test for rects.
  * Iterates back-to-front — returns the topmost hit.
  * Skips fully transparent elements.
  */
-function hitTestRects(px: number, py: number, buffers: GeomBuffers): number {
-  const buf = buffers as RectBuffers;
-  const { count, x, y, w, h, fillA } = buf;
+function hitTestRects(px: number, py: number, buffers: RectBuffers): number {
+  const { count, x, y, w, h, fillA } = buffers;
   for (let i = count - 1; i >= 0; i--) {
     if (fillA[i] === 0) continue;
     if (px >= x[i] && px < x[i] + w[i] && py >= y[i] && py < y[i] + h[i]) {
@@ -54,9 +53,8 @@ function hitTestRects(px: number, py: number, buffers: GeomBuffers): number {
  * Returns the nearest visible point whose center is within its radius
  * of the cursor.
  */
-function hitTestPoints(px: number, py: number, buffers: GeomBuffers): number {
-  const buf = buffers as PointBuffers;
-  const { count, cx, cy, r, fillA } = buf;
+function hitTestPoints(px: number, py: number, buffers: PointBuffers): number {
+  const { count, cx, cy, r, fillA } = buffers;
   let best = -1;
   let bestDist = Infinity;
   for (let i = 0; i < count; i++) {
@@ -101,9 +99,8 @@ function segmentDistSq(
  * Line proximity test for paths.
  * Returns the closest visible series within a 6px tolerance.
  */
-function hitTestPaths(px: number, py: number, buffers: GeomBuffers): number {
-  const buf = buffers as PathBuffers;
-  const { x, y, seriesOffset, seriesCount, fillA } = buf;
+function hitTestPaths(px: number, py: number, buffers: PathBuffers): number {
+  const { x, y, seriesOffset, seriesCount, fillA } = buffers;
   const tol2 = 36; // 6px tolerance squared
   let best = -1;
   let bestDist = Infinity;
@@ -126,9 +123,9 @@ function hitTestPaths(px: number, py: number, buffers: GeomBuffers): number {
 // ── Tester Registry ──
 
 const hitTesters: Record<GeomBuffers["kind"], HitTestFn> = {
-  rect: hitTestRects,
-  point: hitTestPoints,
-  path: hitTestPaths,
+  rect: hitTestRects as HitTestFn,
+  point: hitTestPoints as HitTestFn,
+  path: hitTestPaths as HitTestFn,
 };
 
 // ── Data-Space Coordinate Resolution ──
@@ -153,18 +150,12 @@ function invertPosition(
  */
 function getElementPosition(buf: GeomBuffers, idx: number): { px: number; py: number } {
   switch (buf.kind) {
-    case "rect": {
-      const rb = buf as RectBuffers;
-      return { px: rb.x[idx], py: rb.y[idx] };
-    }
-    case "point": {
-      const pb = buf as PointBuffers;
-      return { px: pb.cx[idx], py: pb.cy[idx] };
-    }
-    case "path": {
-      const lb = buf as PathBuffers;
-      return { px: lb.x[idx], py: lb.y[idx] };
-    }
+    case "rect":
+      return { px: buf.x[idx], py: buf.y[idx] };
+    case "point":
+      return { px: buf.cx[idx], py: buf.cy[idx] };
+    case "path":
+      return { px: buf.x[idx], py: buf.y[idx] };
   }
 }
 

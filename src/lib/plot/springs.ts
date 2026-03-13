@@ -94,8 +94,11 @@ export function createTweenBuffer(
   to: GeomBuffers,
 ): TweenBuffer {
   const channels = getChannelDescs(to.kind);
-  const count = to.count;
-  const sameSize = from !== null && from.count === count;
+  const count =
+    to.kind === "path" ? to.vertexCount : to.count;
+  const sameSize =
+    from !== null &&
+    (from.kind === "path" ? from.vertexCount : from.count) === count;
   const currentF32: Record<string, Float32Array> = {};
   const currentU8: Record<string, Uint8Array> = {};
   const targetF32: Record<string, Float32Array> = {};

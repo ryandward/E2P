@@ -29,11 +29,10 @@ type PaintFn = (
  */
 function paintRects(
   ctx: CanvasRenderingContext2D,
-  buffers: GeomBuffers,
+  buffers: RectBuffers,
   cornerRadius: number,
 ): void {
-  const buf = buffers as RectBuffers;
-  const { count, x, y, w, h, fillR, fillG, fillB, fillA } = buf;
+  const { count, x, y, w, h, fillR, fillG, fillB, fillA } = buffers;
 
   for (let i = 0; i < count; i++) {
     const a = fillA[i];
@@ -49,11 +48,10 @@ function paintRects(
 
 function paintPoints(
   ctx: CanvasRenderingContext2D,
-  buffers: GeomBuffers,
+  buffers: PointBuffers,
   _cornerRadius: number,
 ): void {
-  const buf = buffers as PointBuffers;
-  const { count, cx, cy, r, fillR, fillG, fillB, fillA } = buf;
+  const { count, cx, cy, r, fillR, fillG, fillB, fillA } = buffers;
 
   for (let i = 0; i < count; i++) {
     const a = fillA[i];
@@ -69,11 +67,10 @@ function paintPoints(
 
 function paintPaths(
   ctx: CanvasRenderingContext2D,
-  buffers: GeomBuffers,
+  buffers: PathBuffers,
   _cornerRadius: number,
 ): void {
-  const buf = buffers as PathBuffers;
-  const { x, y, seriesOffset, seriesCount, fillR, fillG, fillB, fillA } = buf;
+  const { x, y, seriesOffset, seriesCount, fillR, fillG, fillB, fillA } = buffers;
 
   for (let s = 0; s < seriesCount; s++) {
     const a = fillA[s];
@@ -93,9 +90,9 @@ function paintPaths(
 // ── Painter Registry ──
 
 const painters: Record<GeomBuffers["kind"], PaintFn> = {
-  rect: paintRects,
-  point: paintPoints,
-  path: paintPaths,
+  rect: paintRects as PaintFn,
+  point: paintPoints as PaintFn,
+  path: paintPaths as PaintFn,
 };
 
 /**

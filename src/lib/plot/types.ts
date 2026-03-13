@@ -35,8 +35,11 @@ export interface StatSpec {
 
 // ── Scale Spec (declarative, pre-resolution) ──
 
+export type PositionScaleType = "linear" | "log" | "band" | "ordinal";
+export type ColorScaleType = "sequential" | "diverging" | "viridis";
+
 export interface ScaleSpec {
-  type: "linear" | "log" | "band" | "diverging" | "sequential" | "ordinal";
+  type: PositionScaleType | ColorScaleType;
   domain?: [number, number] | string[];
   range?: [number, number] | string[];
   clamp?: boolean;

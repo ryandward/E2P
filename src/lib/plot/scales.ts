@@ -9,7 +9,7 @@
  * per call. Safe for compile()-time bulk packing into Uint8Array buffers.
  */
 
-import type { ContinuousScale, BandScale, ColorScale } from "./types";
+import type { ContinuousScale, BandScale, ColorScale, ColorScaleType } from "./types";
 
 // ── Linear Scale ──
 
@@ -203,7 +203,7 @@ function viridisRgb(t: number): [number, number, number] {
 
 // ── Color Scale Factory ──
 
-export type ColorRamp = "sequential" | "diverging" | "viridis";
+export type { ColorScaleType as ColorRamp } from "./types";
 
 /**
  * Create a ColorScale from a named ramp and a numeric domain.
@@ -219,7 +219,7 @@ export type ColorRamp = "sequential" | "diverging" | "viridis";
  * Uint8Arrays, so the reuse is safe and avoids allocation.
  */
 export function colorScale(
-  ramp: ColorRamp,
+  ramp: ColorScaleType,
   domain: [number, number],
 ): ColorScale {
   const [d0, d1] = domain;

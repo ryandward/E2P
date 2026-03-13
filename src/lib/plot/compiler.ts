@@ -21,9 +21,24 @@ import type {
   ContinuousScale,
   BandScale,
   ColorScale,
+  ColorScaleType,
   AxisTick,
 } from "./types";
-import { linearScale, bandScale, colorScale, type ColorRamp } from "./scales";
+import { linearScale, bandScale, colorScale } from "./scales";
+
+// ── Resolved Channel ──
+
+/**
+ * Bundles a resolved position scale with the data column that produced it.
+ *
+ * This discriminated union encodes the invariant that band scales always
+ * pair with string[] columns and continuous scales with Float32Array columns.
+ * Downstream consumers switch on `kind` to narrow both simultaneously,
+ * eliminating unsafe casts in geometry emission.
+ */
+type ResolvedChannel =
+  | { kind: "band"; scale: BandScale; col: string[] }
+  | { kind: "continuous"; scale: ContinuousScale; col: Float32Array };
 
 // ── Color Packing ──
 
@@ -65,22 +80,24 @@ function applyStat(data: DataFrame): DataFrame {
 // ── Scale Resolution ──
 
 /**
- * Infer domain from a data column.
- * String columns → unique values in order of appearance.
- * Float32Array columns → [min, max].
+ * Infer a numeric domain [min, max] from a Float32Array column.
  */
-function inferDomain(col: DataColumn): [number, number] | string[] {
-  if (col instanceof Float32Array) {
-    let min = Infinity;
-    let max = -Infinity;
-    for (let i = 0; i < col.length; i++) {
-      if (col[i] < min) min = col[i];
-      if (col[i] > max) max = col[i];
-    }
-    if (!isFinite(min)) return [0, 1];
-    return [min, max];
+function inferNumericDomain(col: Float32Array): [number, number] {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < col.length; i++) {
+    if (col[i] < min) min = col[i];
+    if (col[i] > max) max = col[i];
   }
-  // String array — unique values preserving first occurrence order.
+  if (!isFinite(min)) return [0, 1];
+  return [min, max];
+}
+
+/**
+ * Infer a categorical domain from a string[] column.
+ * Unique values in order of first appearance.
+ */
+function inferCategoricalDomain(col: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const v of col) {
@@ -93,30 +110,39 @@ function inferDomain(col: DataColumn): [number, number] | string[] {
 }
 
 /**
- * Resolve a position scale (x or y) from a ScaleSpec and data column.
+ * Resolve a position channel (x or y) from a ScaleSpec and data column.
  *
- * String columns produce BandScale (with gap derived from the existing
- * CELL_STEP / CELL ratio: gap = range_span * (GAP / CELL_STEP) / n,
- * but simpler: we let the caller's pixel range and the domain count
- * determine bandwidth, with a fixed 2px gap matching the design).
+ * The column's runtime type determines the scale kind:
+ *   Float32Array → ContinuousScale (linear)
+ *   string[]     → BandScale (categorical, fixed 2px gap)
  *
- * Numeric columns produce ContinuousScale (linear).
+ * Returns a ResolvedChannel that bundles the scale and column under
+ * a single discriminant, preserving their correlation for downstream use.
  */
-function resolvePositionScale(
+function resolvePositionChannel(
   spec: ScaleSpec | undefined,
   col: DataColumn,
   range: [number, number],
-): ContinuousScale | BandScale {
-  const domain = spec?.domain ?? inferDomain(col);
-
-  if (Array.isArray(domain) && typeof domain[0] === "string") {
-    // Band scale for categorical data.
-    const gap = 2; // Fixed 2px gap (matches CELL_STEP design).
-    return bandScale(domain as string[], range, gap);
+): ResolvedChannel {
+  if (col instanceof Float32Array) {
+    const domain =
+      (spec?.domain as [number, number] | undefined) ?? inferNumericDomain(col);
+    return {
+      kind: "continuous",
+      scale: linearScale(domain, range, spec?.clamp ?? false),
+      col,
+    };
   }
 
-  // Continuous scale for numeric data.
-  return linearScale(domain as [number, number], range, spec?.clamp ?? false);
+  // String column → band scale for categorical data.
+  const domain =
+    (spec?.domain as string[] | undefined) ?? inferCategoricalDomain(col);
+  const gap = 2; // Fixed 2px gap (matches CELL_STEP design).
+  return {
+    kind: "band",
+    scale: bandScale(domain, range, gap),
+    col,
+  };
 }
 
 /**
@@ -127,20 +153,9 @@ function resolveColorScale(
   spec: ScaleSpec | undefined,
   col: Float32Array,
 ): ColorScale {
-  const ramp = (spec?.type ?? "sequential") as ColorRamp;
+  const ramp = (spec?.type ?? "sequential") as ColorScaleType;
   const domain = (spec?.domain as [number, number] | undefined) ?? inferNumericDomain(col);
   return colorScale(ramp, domain);
-}
-
-function inferNumericDomain(col: Float32Array): [number, number] {
-  let min = Infinity;
-  let max = -Infinity;
-  for (let i = 0; i < col.length; i++) {
-    if (col[i] < min) min = col[i];
-    if (col[i] > max) max = col[i];
-  }
-  if (!isFinite(min)) return [0, 1];
-  return [min, max];
 }
 
 // ── Geom Emitters ──
@@ -160,14 +175,12 @@ function inferNumericDomain(col: Float32Array): [number, number] {
 function emitTile(
   data: DataFrame,
   aes: AesMapping,
-  scales: ResolvedScales,
+  xCh: ResolvedChannel,
+  yCh: ResolvedChannel,
+  fillScale: ColorScale | undefined,
   _params: Record<string, unknown> | undefined,
 ): RectBuffers {
   const count = data.length;
-  const xCol = data.columns[aes.x];
-  const yCol = data.columns[aes.y];
-  const xScale = scales.x;
-  const yScale = scales.y;
 
   const x = new Float32Array(count);
   const y = new Float32Array(count);
@@ -176,57 +189,50 @@ function emitTile(
   const dataIndex = new Uint32Array(count);
 
   // Resolve geometry positions.
-  if (xScale.kind === "band" && yScale.kind === "band") {
-    // Both axes categorical — the typical heatmap case.
-    const bw = xScale.bandwidth;
-    const bh = yScale.bandwidth;
-    const xArr = xCol as string[];
-    const yArr = yCol as string[];
-
-    for (let i = 0; i < count; i++) {
-      x[i] = xScale(xArr[i]);
-      y[i] = yScale(yArr[i]);
-      w[i] = bw;
-      h[i] = bh;
-      dataIndex[i] = i;
-    }
-  } else if (xScale.kind === "band") {
-    // x categorical, y continuous.
-    const bw = xScale.bandwidth;
-    const xArr = xCol as string[];
-    const yArr = yCol as Float32Array;
-
-    for (let i = 0; i < count; i++) {
-      x[i] = xScale(xArr[i]);
-      y[i] = (yScale as ContinuousScale)(yArr[i]);
-      w[i] = bw;
-      h[i] = 1; // 1px height for continuous y — caller should spec tile height via params
-      dataIndex[i] = i;
-    }
-  } else if (yScale.kind === "band") {
-    // x continuous, y categorical.
-    const bh = yScale.bandwidth;
-    const xArr = xCol as Float32Array;
-    const yArr = yCol as string[];
-
-    for (let i = 0; i < count; i++) {
-      x[i] = (xScale as ContinuousScale)(xArr[i]);
-      y[i] = yScale(yArr[i]);
-      w[i] = 1;
-      h[i] = bh;
-      dataIndex[i] = i;
+  // Nested checks on xCh.kind / yCh.kind give TypeScript full narrowing
+  // of both scale and column types — zero casts needed.
+  if (xCh.kind === "band") {
+    const bw = xCh.scale.bandwidth;
+    if (yCh.kind === "band") {
+      // Both axes categorical — the typical heatmap case.
+      const bh = yCh.scale.bandwidth;
+      for (let i = 0; i < count; i++) {
+        x[i] = xCh.scale(xCh.col[i]);
+        y[i] = yCh.scale(yCh.col[i]);
+        w[i] = bw;
+        h[i] = bh;
+        dataIndex[i] = i;
+      }
+    } else {
+      // x categorical, y continuous.
+      for (let i = 0; i < count; i++) {
+        x[i] = xCh.scale(xCh.col[i]);
+        y[i] = yCh.scale(yCh.col[i]);
+        w[i] = bw;
+        h[i] = 1; // 1px height for continuous y — caller should spec tile height via params
+        dataIndex[i] = i;
+      }
     }
   } else {
-    // Both continuous — unusual for tiles but handle it.
-    const xArr = xCol as Float32Array;
-    const yArr = yCol as Float32Array;
-
-    for (let i = 0; i < count; i++) {
-      x[i] = (xScale as ContinuousScale)(xArr[i]);
-      y[i] = (yScale as ContinuousScale)(yArr[i]);
-      w[i] = 1;
-      h[i] = 1;
-      dataIndex[i] = i;
+    if (yCh.kind === "band") {
+      // x continuous, y categorical.
+      const bh = yCh.scale.bandwidth;
+      for (let i = 0; i < count; i++) {
+        x[i] = xCh.scale(xCh.col[i]);
+        y[i] = yCh.scale(yCh.col[i]);
+        w[i] = 1;
+        h[i] = bh;
+        dataIndex[i] = i;
+      }
+    } else {
+      // Both continuous — unusual for tiles but handle it.
+      for (let i = 0; i < count; i++) {
+        x[i] = xCh.scale(xCh.col[i]);
+        y[i] = yCh.scale(yCh.col[i]);
+        w[i] = 1;
+        h[i] = 1;
+        dataIndex[i] = i;
+      }
     }
   }
 
@@ -236,9 +242,9 @@ function emitTile(
   let fillB: Uint8Array;
   let fillA: Uint8Array;
 
-  if (aes.fill && scales.fill) {
+  if (aes.fill && fillScale) {
     const fillCol = data.columns[aes.fill] as Float32Array;
-    const packed = packColors(fillCol, scales.fill, count);
+    const packed = packColors(fillCol, fillScale, count);
     fillR = packed.fillR;
     fillG = packed.fillG;
     fillB = packed.fillB;
@@ -260,13 +266,15 @@ function emitGeom(
   geom: string,
   data: DataFrame,
   aes: AesMapping,
-  scales: ResolvedScales,
+  xCh: ResolvedChannel,
+  yCh: ResolvedChannel,
+  fillScale: ColorScale | undefined,
   params: Record<string, unknown> | undefined,
 ): GeomBuffers {
   switch (geom) {
     case "tile":
     case "rect":
-      return emitTile(data, aes, scales, params);
+      return emitTile(data, aes, xCh, yCh, fillScale, params);
     default:
       throw new Error(`compile: geom "${geom}" not implemented (Phase 1 supports "tile" only)`);
   }
@@ -304,7 +312,9 @@ function buildAxisTicks(scale: ContinuousScale | BandScale): AxisTick[] {
  */
 export function compile(spec: PlotSpec): SceneGraph {
   const layers: GeomBuffers[] = [];
-  const resolvedScales: Partial<ResolvedScales> = {};
+  let xChannel: ResolvedChannel | undefined;
+  let yChannel: ResolvedChannel | undefined;
+  let fillScale: ColorScale | undefined;
 
   for (const layerSpec of spec.layers) {
     // 1. Merge per-layer data/aes with plot-level defaults.
@@ -314,30 +324,19 @@ export function compile(spec: PlotSpec): SceneGraph {
     // 2. Apply stat transformation.
     const transformed = applyStat(data);
 
-    // 3. Resolve scales (lazily — first layer to use a channel creates it).
+    // 3. Resolve channels (lazily — first layer to use a channel creates it).
     const xCol = transformed.columns[aes.x];
     const yCol = transformed.columns[aes.y];
 
-    if (!resolvedScales.x) {
-      resolvedScales.x = resolvePositionScale(
-        spec.scales?.x,
-        xCol,
-        [0, spec.width],
-      );
+    if (!xChannel) {
+      xChannel = resolvePositionChannel(spec.scales?.x, xCol, [0, spec.width]);
     }
-    if (!resolvedScales.y) {
-      resolvedScales.y = resolvePositionScale(
-        spec.scales?.y,
-        yCol,
-        [0, spec.height],
-      );
+    if (!yChannel) {
+      yChannel = resolvePositionChannel(spec.scales?.y, yCol, [0, spec.height]);
     }
-    if (aes.fill && !resolvedScales.fill) {
+    if (aes.fill && !fillScale) {
       const fillCol = transformed.columns[aes.fill] as Float32Array;
-      resolvedScales.fill = resolveColorScale(
-        spec.scales?.fill,
-        fillCol,
-      );
+      fillScale = resolveColorScale(spec.scales?.fill, fillCol);
     }
 
     // 4. Emit geometry buffers.
@@ -345,13 +344,23 @@ export function compile(spec: PlotSpec): SceneGraph {
       layerSpec.geom,
       transformed,
       aes,
-      resolvedScales as ResolvedScales,
+      xChannel,
+      yChannel,
+      fillScale,
       layerSpec.params,
     );
     layers.push(buffers);
   }
 
-  const scales = resolvedScales as ResolvedScales;
+  if (!xChannel || !yChannel) {
+    throw new Error("compile: spec must have at least one layer to resolve scales");
+  }
+
+  const scales: ResolvedScales = {
+    x: xChannel.scale,
+    y: yChannel.scale,
+    fill: fillScale,
+  };
 
   return {
     layers,

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { FadeTransition, StableCounter } from "stablekit.ts";
 import { mulberry32 } from "../lib/canvas";
-import { GridPlot, type HoverEvent } from "../components/plot/GridPlot";
+import { GridPlot, type HoverEvent, type BandSceneGraph } from "../components/plot/GridPlot";
 import { ContinuousLegend } from "../components/plot/ContinuousLegend";
 import { compile } from "../lib/plot/compiler";
 import type { PlotSpec } from "../lib/plot/types";
@@ -228,11 +228,14 @@ export default function Data() {
   );
 
   const activeSpec = tab === "expression" ? exprSpec : corrSpec;
-  const activeHover = tab === "expression" ? exprHover : corrHover;
   const setActiveHover = tab === "expression" ? setExprHover : setCorrHover;
 
   // Compile the active spec to extract axes and fill scale.
-  const activeGraph = useMemo(() => compile(activeSpec), [activeSpec]);
+  // Both expression and correlation specs use categorical axes (band scales).
+  const activeGraph = useMemo(
+    () => compile(activeSpec) as BandSceneGraph,
+    [activeSpec],
+  );
   const fillScale = activeGraph.scales.fill;
 
   return (
@@ -284,11 +287,13 @@ export default function Data() {
 
           {/* ── Right column: canopy ── */}
           <div className="sticky-panel canopy stack">
-            <ContinuousLegend
-              scale={fillScale}
-              low={tab === "correlation" ? "-1" : undefined}
-              high={tab === "correlation" ? "+1" : undefined}
-            />
+            {fillScale && (
+              <ContinuousLegend
+                scale={fillScale}
+                low={tab === "correlation" ? "-1" : undefined}
+                high={tab === "correlation" ? "+1" : undefined}
+              />
+            )}
 
             <div className="stack">
               <div className="text-label color-muted">Threshold</div>
