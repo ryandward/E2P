@@ -136,10 +136,6 @@
 .tab-reserve {
   height: 0;
   overflow: hidden;
-  padding-right: var(--space-element);
-  font-size: var(--text-fine);
-  font-family: var(--font-code);
-  font-weight: var(--weight-semibold);
 }
 
 
@@ -203,7 +199,7 @@
 /* ── Heatmap Tooltip ── */
 
 .heatmap-tooltip {
-  background: var(--color-control);
+  background: var(--color-surface-sunken);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-element) var(--space-inline);
