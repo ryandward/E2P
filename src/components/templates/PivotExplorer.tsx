@@ -5,11 +5,15 @@
  * metric. Lets the user group by either dimension (tabs show the active
  * group's values, bars show the other dimension). Knows nothing about
  * specific datasets — all domain knowledge lives in the page.
+ *
+ * Controls are declared as ControlSpec[] — PlotFrame owns the state.
+ * PivotExplorer listens via onControlChange and recomputes the spec.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FadeTransition, StableCounter } from "stablekit.ts";
-import { PlotFrame, type HoverEvent } from "../plot/PlotFrame";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { FadeTransition } from "stablekit.ts";
+import { PlotFrame, type HoverEvent, type ControlSpec, type ControlValues } from "../plot/PlotFrame";
+import { initControlValues } from "../plot/controls";
 import { compile, niceDomain, NAME_COL } from "../../lib/plot";
 import type { DataFrame, PlotSpec } from "../../lib/plot/types";
 
@@ -140,11 +144,42 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
     return card0 <= card1 ? dimensions[0] : dimensions[1];
   }, [data, dimensions]);
 
-  const [groupBy, setGroupBy] = useState(defaultGroupBy);
+  // Declare controls as data. PlotFrame owns the state.
+  const controlSpecs = useMemo((): ControlSpec[] => [
+    {
+      type: "select",
+      id: "groupBy",
+      label: "Group by",
+      options: dimensions.map((dim) => ({ value: dim, label: dim })),
+      defaultValue: defaultGroupBy,
+    },
+    {
+      type: "range",
+      id: "threshold",
+      label: "Threshold",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      defaultValue: 0,
+      display: (v) => `${Math.round(v * 100)}%`,
+      reserve: "100%",
+    },
+  ], [dimensions, defaultGroupBy]);
+
+  // Local mirror of control values — synced from PlotFrame via onControlChange.
+  const [values, setValues] = useState<ControlValues>(
+    () => initControlValues(controlSpecs),
+  );
   const [activeTab, setActiveTab] = useState("");
   const [hover, setHover] = useState<HoverEvent | null>(null);
-  const [threshold, setThreshold] = useState(0);
 
+  const handleControlChange = useCallback((v: ControlValues) => {
+    setValues(v);
+  }, []);
+
+  // Read current values.
+  const groupBy = values.groupBy as string;
+  const threshold = values.threshold as number;
   const otherDim = dimensions[0] === groupBy ? dimensions[1] : dimensions[0];
 
   // Stable label column floor: longest label across both dimensions, capped at truncation limit.
@@ -214,44 +249,8 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
       onHover={setHover}
       snapKey={groupBy + "|" + resolvedTab}
       header={<TabBar tabs={tabValues} active={resolvedTab} onSelect={setActiveTab} />}
-      canopy={<>
-        <div className="stack">
-          <div className="text-label color-muted">Group by</div>
-          <div className="dropdown">
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-            >
-              {dimensions.map((dim) => (
-                <option key={dim} value={dim}>{dim}</option>
-              ))}
-            </select>
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="stack">
-          <div className="text-label color-muted">Threshold</div>
-          <div className="slider-group">
-            <input
-              className="slider"
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-            />
-            <StableCounter
-              className="gauge"
-              value={`${Math.round(threshold * 100)}%`}
-              reserve="100%"
-            />
-          </div>
-        </div>
-      </>}
+      controls={controlSpecs}
+      onControlChange={handleControlChange}
     >
       {hover && <PivotTooltip hover={hover} />}
     </PlotFrame>

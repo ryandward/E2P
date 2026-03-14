@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import { FadeTransition, StableCounter } from "stablekit.ts";
+import { FadeTransition } from "stablekit.ts";
 import { mulberry32 } from "../lib/canvas";
-import { PlotFrame, type HoverEvent } from "../components/plot/PlotFrame";
+import { PlotFrame, type HoverEvent, type ControlSpec, type ControlValues } from "../components/plot/PlotFrame";
+import { initControlValues } from "../components/plot/controls";
 import { ContinuousLegend } from "../components/plot/ContinuousLegend";
 import { compile } from "../lib/plot/compiler";
 import type { PlotSpec } from "../lib/plot/types";
@@ -170,23 +171,73 @@ function CorrelationTooltip({ hover, correlation }: {
   );
 }
 
+// ── Control Specs ──
+
+const EXPR_CONTROLS: ControlSpec[] = [
+  {
+    type: "range",
+    id: "threshold",
+    label: "Threshold",
+    min: 0,
+    max: 1,
+    step: 0.05,
+    defaultValue: 0.3,
+    display: (v) => v.toFixed(2),
+    reserve: "0.00",
+  },
+  {
+    type: "select",
+    id: "ramp",
+    label: "Color Scale",
+    options: [
+      { value: "sequential", label: "Sequential" },
+      { value: "viridis", label: "Viridis" },
+    ],
+    defaultValue: "sequential",
+  },
+  {
+    type: "range",
+    id: "seed",
+    label: "Seed",
+    min: 1,
+    max: 999,
+    step: 1,
+    defaultValue: 42,
+    display: (v) => String(v),
+    reserve: "999",
+  },
+  {
+    type: "metric",
+    id: "genes",
+    label: "Genes",
+    value: String(GENES.length),
+    reserve: "99",
+  },
+  {
+    type: "metric",
+    id: "tissues",
+    label: "Tissues",
+    value: String(TISSUES.length),
+    reserve: "99",
+  },
+];
+
 // ── Component ──
 
-
-// TODO: CRITICAL — State is shared across both plots. Canopy controls in the
-// expression PlotFrame can mutate state (seed) that affects the correlation
-// PlotFrame. This violates the visual contract: a control inside one plot
-// must not affect another. PlotFrame must become a stateful widget that owns
-// its control state internally. See PlotFrame widget design discussion.
 export default function Expression() {
-  const [threshold, setThreshold] = useState(0.3);
-  const [ramp, setRamp] = useState<ColorRamp>("sequential");
-  const [seed, setSeed] = useState(42);
+  // Expression plot — owns its control values via PlotFrame.
+  const [exprValues, setExprValues] = useState<ControlValues>(
+    () => initControlValues(EXPR_CONTROLS),
+  );
   const [exprHover, setExprHover] = useState<HoverEvent | null>(null);
   const [corrHover, setCorrHover] = useState<HoverEvent | null>(null);
 
-  const [snapTrigger, setSnapTrigger] = useState(0);
-  const requestSnap = useCallback(() => setSnapTrigger((n) => n + 1), []);
+  const handleExprChange = useCallback((v: ControlValues) => setExprValues(v), []);
+
+  // Read current values.
+  const threshold = exprValues.threshold as number;
+  const ramp = exprValues.ramp as ColorRamp;
+  const seed = exprValues.seed as number;
 
   const expression = useMemo(
     () => generateExpression(GENES.length, TISSUES.length, seed),
@@ -201,17 +252,18 @@ export default function Expression() {
     () => buildExpressionSpec(expression, threshold, ramp),
     [expression, threshold, ramp],
   );
+
   const corrSpec = useMemo(
     () => buildCorrelationSpec(correlation),
     [correlation],
   );
 
   const exprGraph = useMemo(
-    () => compile(exprSpec) ,
+    () => compile(exprSpec),
     [exprSpec],
   );
   const corrGraph = useMemo(
-    () => compile(corrSpec) ,
+    () => compile(corrSpec),
     [corrSpec],
   );
 
@@ -221,89 +273,21 @@ export default function Expression() {
   return (
     <article className="region center flow">
       <h1>Expression</h1>
-      <p>Synthetic gene expression heatmap (32 genes × 10 tissues) with a tissue-tissue correlation matrix below.</p>
-      <p><strong>Known issue:</strong> The seed slider in the expression plot's controls regenerates the correlation plot below. Controls inside one plot must not affect another — PlotFrame needs to own its control state internally to enforce this boundary.</p>
+      <p>Synthetic gene expression heatmap (32 genes × 10 tissues) with a tissue-tissue correlation matrix below. Note: changing the seed regenerates both plots because the correlation is derived from the expression data.</p>
 
       <div className="canvas-frame viz-frame">
         <PlotFrame
           spec={exprSpec}
           graph={exprGraph}
           onHover={setExprHover}
-
-          snapKey={"expr|" + snapTrigger}
-          canopy={<>
-            {exprFillScale && exprFillScale.kind === "color" && (
-              <ContinuousLegend scale={exprFillScale} />
-            )}
-
-            <div className="stack">
-              <div className="text-label color-muted">Threshold</div>
-              <div className="slider-group">
-                <input
-                  className="slider"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={threshold}
-                  onChange={(e) => setThreshold(Number(e.target.value))}
-                  onPointerUp={requestSnap}
-                />
-                <StableCounter
-                  className="gauge"
-                  value={threshold.toFixed(2)}
-                  reserve="0.00"
-                />
-              </div>
-            </div>
-
-            <div className="stack">
-              <div className="text-label color-muted">Color Scale</div>
-              <div className="dropdown">
-                <select
-                  value={ramp}
-                  onChange={(e) => { setRamp(e.target.value as ColorRamp); requestSnap(); }}
-                >
-                  <option value="sequential">Sequential</option>
-                  <option value="viridis">Viridis</option>
-                </select>
-                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                  <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="stack">
-              <div className="text-label color-muted">Seed</div>
-              <div className="slider-group">
-                <input
-                  className="slider"
-                  type="range"
-                  min={1}
-                  max={999}
-                  step={1}
-                  value={seed}
-                  onChange={(e) => setSeed(Number(e.target.value))}
-                  onPointerUp={requestSnap}
-                />
-                <StableCounter
-                  className="gauge"
-                  value={String(seed)}
-                  reserve="999"
-                />
-              </div>
-            </div>
-
-            <div className="stack">
-              <div className="text-label color-muted">Genes</div>
-              <StableCounter className="gauge" value={String(GENES.length)} reserve="99" />
-            </div>
-
-            <div className="stack">
-              <div className="text-label color-muted">Tissues</div>
-              <StableCounter className="gauge" value={String(TISSUES.length)} reserve="99" />
-            </div>
-          </>}
+          snapKey={"expr|" + seed}
+          controls={EXPR_CONTROLS}
+          onControlChange={handleExprChange}
+          canopy={
+            exprFillScale && exprFillScale.kind === "color"
+              ? <ContinuousLegend scale={exprFillScale} />
+              : undefined
+          }
         >
           {exprHover && (
             <ExpressionTooltip
@@ -323,8 +307,7 @@ export default function Expression() {
           spec={corrSpec}
           graph={corrGraph}
           onHover={setCorrHover}
-
-          snapKey={"corr|" + snapTrigger}
+          snapKey={"corr|" + seed}
           canopy={
             corrFillScale && corrFillScale.kind === "color"
               ? <ContinuousLegend scale={corrFillScale} low="-1" high="+1" />

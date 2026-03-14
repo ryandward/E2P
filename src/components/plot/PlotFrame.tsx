@@ -30,6 +30,9 @@ import {
 } from "react";
 import { useScrollSnap } from "../../hooks/useScrollSnap";
 import { Plot, type HoverEvent } from "./Plot";
+import { CanopyControl } from "./CanopyControl";
+import type { ControlSpec, ControlValues } from "./controls";
+import { initControlValues } from "./controls";
 import type { HitResult } from "../../lib/plot/hitTest";
 import type {
   PlotSpec,
@@ -39,6 +42,7 @@ import type {
 } from "../../lib/plot/types";
 
 export type { HoverEvent };
+export type { ControlSpec, ControlValues };
 
 export interface PlotFrameProps {
   spec: PlotSpec;
@@ -47,7 +51,11 @@ export interface PlotFrameProps {
   onClick?: (hit: HitResult) => void;
   /** Content rendered inside the sticky header (tab bar). */
   header?: ReactNode;
-  /** Sidebar controls (legend, sliders) rendered in the canopy. */
+  /** Declarative control specs — PlotFrame owns the state. */
+  controls?: ControlSpec[];
+  /** Called when any control value changes. Values are keyed by control id. */
+  onControlChange?: (values: ControlValues) => void;
+  /** Additional canopy content (legends, non-control elements). */
   canopy?: ReactNode;
   /** When this value changes, the grid snaps back into view. */
   snapKey?: string | number;
@@ -179,6 +187,8 @@ export function PlotFrame({
   onHover,
   onClick,
   header,
+  controls,
+  onControlChange,
   canopy,
   snapKey,
   children,
@@ -190,6 +200,19 @@ export function PlotFrame({
   const [colOverhang, setColOverhang] = useState(0);
   const [labelW, setLabelW] = useState(0);
   const [tabsH, setTabsH] = useState(0);
+
+  // Control state — owned by PlotFrame, not the caller.
+  const [controlValues, setControlValues] = useState<ControlValues>(
+    () => initControlValues(controls ?? []),
+  );
+
+  const handleControlChange = useCallback((id: string, value: number | string) => {
+    setControlValues((prev) => {
+      const next = { ...prev, [id]: value };
+      onControlChange?.(next);
+      return next;
+    });
+  }, [onControlChange]);
 
   useScrollSnap(gridRef, snapKey);
 
@@ -311,8 +334,18 @@ export function PlotFrame({
         )}
       </div>
 
-      {canopy && (
-        <div className="sticky-panel canopy stack">{canopy}</div>
+      {(controls?.length || canopy) && (
+        <div className="sticky-panel canopy stack">
+          {canopy}
+          {controls?.map((spec) => (
+            <CanopyControl
+              key={spec.id}
+              spec={spec}
+              value={controlValues[spec.id] ?? (spec.type === "metric" ? spec.value : "")}
+              onChange={handleControlChange}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
