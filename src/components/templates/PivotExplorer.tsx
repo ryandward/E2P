@@ -147,13 +147,6 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
 
   const otherDim = dimensions[0] === groupBy ? dimensions[1] : dimensions[0];
 
-  // Longest row label across both dimensions for stable column sizing.
-  const longestRowLabel = useMemo(() => {
-    const vals0 = unique(data.columns[dimensions[0]] as string[]);
-    const vals1 = unique(data.columns[dimensions[1]] as string[]);
-    return [...vals0, ...vals1].reduce((a, b) => a.length > b.length ? a : b);
-  }, [data, dimensions]);
-
   // Unique values for tabs (from groupBy column).
   const groupByCol = data.columns[groupBy] as string[];
   const tabValues = useMemo(() => unique(groupByCol), [groupByCol]);
@@ -210,7 +203,6 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
       spec={spec}
       graph={graph}
       onHover={setHover}
-      longestRowLabel={longestRowLabel}
       snapKey={groupBy + "|" + resolvedTab}
       header={<TabBar tabs={tabValues} active={resolvedTab} onSelect={setActiveTab} />}
       canopy={<>

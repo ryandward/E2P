@@ -172,8 +172,6 @@ function CorrelationTooltip({ hover, correlation }: {
 
 // ── Component ──
 
-const LONGEST_GENE_LABEL = GENES.reduce((a, b) => a.length > b.length ? a : b);
-const LONGEST_TISSUE_LABEL = TISSUES.reduce((a, b) => a.length > b.length ? a : b);
 
 // TODO: CRITICAL — State is shared across both plots. Canopy controls in the
 // expression PlotFrame can mutate state (seed) that affects the correlation
@@ -231,7 +229,7 @@ export default function Expression() {
           spec={exprSpec}
           graph={exprGraph}
           onHover={setExprHover}
-          longestRowLabel={LONGEST_GENE_LABEL}
+
           snapKey={"expr|" + snapTrigger}
           canopy={<>
             {exprFillScale && exprFillScale.kind === "color" && (
@@ -325,7 +323,7 @@ export default function Expression() {
           spec={corrSpec}
           graph={corrGraph}
           onHover={setCorrHover}
-          longestRowLabel={LONGEST_TISSUE_LABEL}
+
           snapKey={"corr|" + snapTrigger}
           canopy={
             corrFillScale && corrFillScale.kind === "color"

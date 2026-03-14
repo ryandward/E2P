@@ -208,7 +208,7 @@
   height: 100%;
 }
 
-.plot-frame > .anchor {
+.plot-frame__canvas {
   margin-inline-start: var(--space-element);
 }
 
