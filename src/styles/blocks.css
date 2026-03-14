@@ -325,13 +325,13 @@
 }
 
 .dropdown > select option:hover {
-  background-color: var(--color-control);
-  color: var(--color-text);
+  background-color: var(--color-interactive);
+  color: var(--color-text-inverse);
 }
 
 .dropdown > select option:checked {
-  background-color: var(--color-interactive);
-  color: var(--color-text-inverse);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text);
   font-weight: var(--weight-semibold);
 }
 

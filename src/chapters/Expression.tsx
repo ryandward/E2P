@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { FadeTransition, StableCounter } from "stablekit.ts";
 import { mulberry32 } from "../lib/canvas";
-import { GridPlot, type HoverEvent, type BandSceneGraph } from "../components/plot/GridPlot";
+import { PlotFrame, type HoverEvent } from "../components/plot/PlotFrame";
 import { ContinuousLegend } from "../components/plot/ContinuousLegend";
 import { compile } from "../lib/plot/compiler";
 import type { PlotSpec } from "../lib/plot/types";
@@ -79,8 +79,8 @@ function buildExpressionSpec(
     aes: { x: "tissue", y: "gene", fill: "value" },
     scales: { fill: { type: ramp, domain: [0, 1] } },
     layers: [{ geom: "tile" }],
-    width: cols * STEP,
-    height: rows * STEP,
+    width: { step: STEP },
+    height: { step: STEP },
   };
 }
 
@@ -106,20 +106,18 @@ function buildCorrelationSpec(correlation: number[][]): PlotSpec {
     aes: { x: "tissueX", y: "tissueY", fill: "value" },
     scales: { fill: { type: "diverging", domain: [0, 1] } },
     layers: [{ geom: "tile" }],
-    width: n * STEP,
-    height: n * STEP,
+    width: { step: STEP },
+    height: { step: STEP },
   };
 }
 
-// ── Tooltip ──
+// ── Tooltips ──
 
-interface TooltipProps {
+function ExpressionTooltip({ hover, expression, threshold }: {
   hover: HoverEvent;
   expression: number[][];
   threshold: number;
-}
-
-function ExpressionTooltip({ hover, expression, threshold }: TooltipProps) {
+}) {
   const { hit, canvasX, canvasY } = hover;
   const tissue = hit.dataX as string;
   const gene = hit.dataY as string;
@@ -145,12 +143,10 @@ function ExpressionTooltip({ hover, expression, threshold }: TooltipProps) {
   );
 }
 
-interface CorrTooltipProps {
+function CorrelationTooltip({ hover, correlation }: {
   hover: HoverEvent;
   correlation: number[][];
-}
-
-function CorrelationTooltip({ hover, correlation }: CorrTooltipProps) {
+}) {
   const { hit, canvasX, canvasY } = hover;
   const tissueX = hit.dataX as string;
   const tissueY = hit.dataY as string;
@@ -176,17 +172,13 @@ function CorrelationTooltip({ hover, correlation }: CorrTooltipProps) {
 
 // ── Component ──
 
-type Tab = "expression" | "correlation";
-
-const LONGEST_ROW_LABEL = [...GENES, ...TISSUES].reduce((a, b) =>
-  a.length > b.length ? a : b,
-);
+const LONGEST_GENE_LABEL = GENES.reduce((a, b) => a.length > b.length ? a : b);
+const LONGEST_TISSUE_LABEL = TISSUES.reduce((a, b) => a.length > b.length ? a : b);
 
 export default function Expression() {
   const [threshold, setThreshold] = useState(0.3);
   const [ramp, setRamp] = useState<ColorRamp>("sequential");
   const [seed, setSeed] = useState(42);
-  const [tab, setTab] = useState<Tab>("expression");
   const [exprHover, setExprHover] = useState<HoverEvent | null>(null);
   const [corrHover, setCorrHover] = useState<HoverEvent | null>(null);
 
@@ -206,80 +198,38 @@ export default function Expression() {
     () => buildExpressionSpec(expression, threshold, ramp),
     [expression, threshold, ramp],
   );
-
   const corrSpec = useMemo(
     () => buildCorrelationSpec(correlation),
     [correlation],
   );
 
-  const activeSpec = tab === "expression" ? exprSpec : corrSpec;
-  const setActiveHover = tab === "expression" ? setExprHover : setCorrHover;
-
-  const activeGraph = useMemo(
-    () => compile(activeSpec) as BandSceneGraph,
-    [activeSpec],
+  const exprGraph = useMemo(
+    () => compile(exprSpec) ,
+    [exprSpec],
   );
-  const fillScale = activeGraph.scales.fill;
+  const corrGraph = useMemo(
+    () => compile(corrSpec) ,
+    [corrSpec],
+  );
+
+  const exprFillScale = exprGraph.scales.fill;
+  const corrFillScale = corrGraph.scales.fill;
 
   return (
     <article className="region center flow">
       <h1>Expression</h1>
-      <p>Synthetic gene expression heatmap (32 genes × 10 tissues) with a tissue-tissue correlation view. Both tabs share a single <strong>GridPlot</strong> layout wrapper — switching tabs swaps the <code>PlotSpec</code> while the DOM shell stays mounted.</p>
-      <p>The GoG compiler resolves band scales for both axes, producing tile geometry on a single canvas. Column label heights are measured via trigonometry and integer-snapped to respect the GPU compositor. The CUBE stack: <code>.tab-grid</code> (composition) uses CSS subgrid to align the header, <code>.plot-labels</code> (composition) pins row labels with <code>clip-path</code> for shadow containment, and <code>.sidebar</code> (composition) places the canopy controls in a sticky panel. Visual treatment — surfaces, shadows, tab styling — lives entirely in blocks and utilities.</p>
+      <p>Synthetic gene expression heatmap (32 genes × 10 tissues) with a tissue-tissue correlation matrix below.</p>
 
       <div className="canvas-frame viz-frame">
-        <div className="sidebar">
-          <GridPlot
-            spec={activeSpec}
-            graph={activeGraph}
-            onHover={setActiveHover}
-            longestRowLabel={LONGEST_ROW_LABEL}
-            snapKey={tab + "|" + snapTrigger}
-            header={
-              <div className="tab-scroll tab-bar" role="tablist">
-                <div className="tab-scroll__track">
-                  <button
-                    className="tab"
-                    role="tab"
-                    aria-selected={tab === "expression"}
-                    onClick={() => setTab("expression")}
-                  >
-                    Expression
-                  </button>
-                  <button
-                    className="tab"
-                    role="tab"
-                    aria-selected={tab === "correlation"}
-                    onClick={() => setTab("correlation")}
-                  >
-                    Correlation
-                  </button>
-                </div>
-              </div>
-            }
-          >
-            {tab === "expression" && exprHover && (
-              <ExpressionTooltip
-                hover={exprHover}
-                expression={expression}
-                threshold={threshold}
-              />
-            )}
-            {tab === "correlation" && corrHover && (
-              <CorrelationTooltip
-                hover={corrHover}
-                correlation={correlation}
-              />
-            )}
-          </GridPlot>
-
-          <div className="sticky-panel canopy stack">
-            {fillScale && fillScale.kind === "color" && (
-              <ContinuousLegend
-                scale={fillScale}
-                low={tab === "correlation" ? "-1" : undefined}
-                high={tab === "correlation" ? "+1" : undefined}
-              />
+        <PlotFrame
+          spec={exprSpec}
+          graph={exprGraph}
+          onHover={setExprHover}
+          longestRowLabel={LONGEST_GENE_LABEL}
+          snapKey={"expr|" + snapTrigger}
+          canopy={<>
+            {exprFillScale && exprFillScale.kind === "color" && (
+              <ContinuousLegend scale={exprFillScale} />
             )}
 
             <div className="stack">
@@ -349,8 +299,41 @@ export default function Expression() {
               <div className="text-label color-muted">Tissues</div>
               <StableCounter className="gauge" value={String(TISSUES.length)} reserve="99" />
             </div>
-          </div>
-        </div>
+          </>}
+        >
+          {exprHover && (
+            <ExpressionTooltip
+              hover={exprHover}
+              expression={expression}
+              threshold={threshold}
+            />
+          )}
+        </PlotFrame>
+      </div>
+
+      <h2>Correlation</h2>
+      <p>Tissue-tissue correlation derived from the expression matrix above.</p>
+
+      <div className="canvas-frame viz-frame">
+        <PlotFrame
+          spec={corrSpec}
+          graph={corrGraph}
+          onHover={setCorrHover}
+          longestRowLabel={LONGEST_TISSUE_LABEL}
+          snapKey={"corr|" + snapTrigger}
+          canopy={
+            corrFillScale && corrFillScale.kind === "color"
+              ? <ContinuousLegend scale={corrFillScale} low="-1" high="+1" />
+              : undefined
+          }
+        >
+          {corrHover && (
+            <CorrelationTooltip
+              hover={corrHover}
+              correlation={correlation}
+            />
+          )}
+        </PlotFrame>
       </div>
     </article>
   );

@@ -32,7 +32,7 @@ export {
 } from "./springs";
 export type { ChannelDesc, TweenBuffer, SpringState } from "./springs";
 
-export { compile, packColors } from "./compiler";
+export { compile, packColors, niceDomain } from "./compiler";
 
 export { getPainter } from "./painters";
 

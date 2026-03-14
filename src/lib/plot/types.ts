@@ -40,9 +40,10 @@ export type ColorScaleType = "sequential" | "diverging" | "viridis" | "ordinal";
 
 export interface ScaleSpec {
   type: PositionScaleType | ColorScaleType;
-  domain?: [number, number] | string[];
+  domain?: [number, number] | string[] | "nice" | "data";
   range?: [number, number] | string[];
   clamp?: boolean;
+  format?: (value: number) => string;
 }
 
 // ── Layer Spec ──
@@ -55,6 +56,11 @@ export interface LayerSpec {
   params?: Record<string, unknown>;
 }
 
+// ── Dimension Spec ──
+
+/** Pixels or step-based (compiler resolves to domain cardinality × step). */
+export type DimensionSpec = number | { step: number };
+
 // ── Plot Spec (top-level declarative input) ──
 
 export interface PlotSpec {
@@ -62,8 +68,8 @@ export interface PlotSpec {
   aes: AesMapping;
   scales?: Partial<Record<keyof AesMapping, ScaleSpec>>;
   layers: LayerSpec[];
-  width: number;
-  height: number;
+  width: DimensionSpec;
+  height: DimensionSpec;
   facet?: { row?: string; col?: string };
 }
 

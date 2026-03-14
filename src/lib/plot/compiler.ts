@@ -9,6 +9,7 @@
 
 import type {
   PlotSpec,
+  DimensionSpec,
   DataFrame,
   AesMapping,
   ScaleSpec,
@@ -150,6 +151,19 @@ function inferNumericDomain(col: Float32Array): [number, number] {
 }
 
 /**
+ * Extend a numeric domain to nice round boundaries.
+ * Uses the same Heckbert niceStep as tick generation so the domain
+ * edges always land on a tick mark.
+ */
+export function niceDomain(raw: [number, number]): [number, number] {
+  const [lo, hi] = raw;
+  const span = hi - lo;
+  if (span <= 0) return raw;
+  const step = niceStep(span / 5);
+  return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+}
+
+/**
  * Infer a categorical domain from a string[] column.
  * Unique values in order of first appearance.
  */
@@ -181,8 +195,15 @@ function resolvePositionChannel(
   range: [number, number],
 ): ResolvedChannel {
   if (col instanceof Float32Array) {
-    const domain =
-      (spec?.domain as [number, number] | undefined) ?? inferNumericDomain(col);
+    const domainSpec = spec?.domain;
+    let domain: [number, number];
+    if (domainSpec === "nice") {
+      domain = niceDomain(inferNumericDomain(col));
+    } else if (domainSpec === "data" || domainSpec === undefined) {
+      domain = inferNumericDomain(col);
+    } else {
+      domain = domainSpec as [number, number];
+    }
     return {
       kind: "continuous",
       scale: linearScale(domain, range, spec?.clamp ?? false),
@@ -191,8 +212,11 @@ function resolvePositionChannel(
   }
 
   // String column → band scale for categorical data.
-  const domain =
-    (spec?.domain as string[] | undefined) ?? inferCategoricalDomain(col);
+  const domainSpec = spec?.domain;
+  const domain: string[] =
+    (typeof domainSpec === "string" || domainSpec === undefined)
+      ? inferCategoricalDomain(col)
+      : domainSpec as string[];
   const gap = 2; // Fixed 2px gap (matches CELL_STEP design).
   return {
     kind: "band",
@@ -210,7 +234,15 @@ function resolveContinuousColorScale(
   col: Float32Array,
 ): ColorScale {
   const ramp = (spec?.type ?? "sequential") as ColorScaleType;
-  const domain = (spec?.domain as [number, number] | undefined) ?? inferNumericDomain(col);
+  const domainSpec = spec?.domain;
+  let domain: [number, number];
+  if (domainSpec === "nice") {
+    domain = niceDomain(inferNumericDomain(col));
+  } else if (domainSpec === "data" || domainSpec === undefined) {
+    domain = inferNumericDomain(col);
+  } else {
+    domain = domainSpec as [number, number];
+  }
   return colorScale(ramp, domain);
 }
 
@@ -436,7 +468,10 @@ function formatTickLabel(value: number): string {
  * BandScale: one tick per domain value, centered within each band.
  * ContinuousScale: ~5 evenly spaced nice-number ticks across the domain.
  */
-function buildAxisTicks(scale: ContinuousScale | BandScale): AxisTick[] {
+function buildAxisTicks(
+  scale: ContinuousScale | BandScale,
+  format?: (value: number) => string,
+): AxisTick[] {
   if (scale.kind === "band") {
     const half = scale.bandwidth / 2;
     return scale.domain.map((label) => ({
@@ -453,14 +488,29 @@ function buildAxisTicks(scale: ContinuousScale | BandScale): AxisTick[] {
   const step = niceStep(span / 5);
   const ticks: AxisTick[] = [];
   const start = Math.ceil(lo / step) * step;
+  const fmt = format ?? formatTickLabel;
 
   for (let v = start; v <= hi + step * 1e-9; v += step) {
     ticks.push({
-      label: formatTickLabel(v),
+      label: fmt(v),
       position: scale(v),
     });
   }
   return ticks;
+}
+
+// ── Dimension Resolution ──
+
+/**
+ * Resolve a DimensionSpec to pixels.
+ *
+ * - number → pass through (explicit pixels)
+ * - { step } → domain cardinality × step (band-scale shorthand)
+ */
+function resolveDimension(dim: DimensionSpec, col: DataColumn): number {
+  if (typeof dim === "number") return dim;
+  if (col instanceof Float32Array) return dim.step;
+  return inferCategoricalDomain(col).length * dim.step;
 }
 
 // ── Compiler ──
@@ -480,6 +530,8 @@ export function compile(spec: PlotSpec): SceneGraph {
   let xChannel: ResolvedChannel | undefined;
   let yChannel: ResolvedChannel | undefined;
   let fillScale: FillScale | undefined;
+  let width: number | undefined;
+  let height: number | undefined;
 
   for (const layerSpec of spec.layers) {
     // 1. Merge per-layer data/aes with plot-level defaults.
@@ -489,15 +541,18 @@ export function compile(spec: PlotSpec): SceneGraph {
     // 2. Apply stat transformation.
     const transformed = applyStat(data);
 
-    // 3. Resolve channels (lazily — first layer to use a channel creates it).
+    // 3. Resolve dimensions and channels (lazily — first layer creates them).
     const xCol = transformed.columns[aes.x];
     const yCol = transformed.columns[aes.y];
 
+    if (width === undefined) width = resolveDimension(spec.width, xCol);
+    if (height === undefined) height = resolveDimension(spec.height, yCol);
+
     if (!xChannel) {
-      xChannel = resolvePositionChannel(spec.scales?.x, xCol, [0, spec.width]);
+      xChannel = resolvePositionChannel(spec.scales?.x, xCol, [0, width]);
     }
     if (!yChannel) {
-      yChannel = resolvePositionChannel(spec.scales?.y, yCol, [0, spec.height]);
+      yChannel = resolvePositionChannel(spec.scales?.y, yCol, [0, height]);
     }
     if (aes.fill && !fillScale) {
       fillScale = resolveFillScale(spec.scales?.fill, transformed.columns[aes.fill]);
@@ -516,7 +571,7 @@ export function compile(spec: PlotSpec): SceneGraph {
     layers.push(buffers);
   }
 
-  if (!xChannel || !yChannel) {
+  if (!xChannel || !yChannel || width === undefined || height === undefined) {
     throw new Error("compile: spec must have at least one layer to resolve scales");
   }
 
@@ -530,10 +585,10 @@ export function compile(spec: PlotSpec): SceneGraph {
     layers,
     scales,
     axes: {
-      x: { ticks: buildAxisTicks(scales.x) },
-      y: { ticks: buildAxisTicks(scales.y) },
+      x: { ticks: buildAxisTicks(scales.x, spec.scales?.x?.format) },
+      y: { ticks: buildAxisTicks(scales.y, spec.scales?.y?.format) },
     },
-    width: spec.width,
-    height: spec.height,
+    width,
+    height,
   };
 }

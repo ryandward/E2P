@@ -302,12 +302,12 @@ export function Plot({ spec, onHover, onClick, className, children }: PlotProps)
   return (
     <div
       className="anchor"
-      style={{ width: spec.width, height: spec.height }}
+      style={{ width: graph?.width ?? 0, height: graph?.height ?? 0 }}
     >
       <canvas
         ref={canvasRef}
         className={className}
-        style={{ width: spec.width, height: spec.height }}
+        style={{ width: graph?.width ?? 0, height: graph?.height ?? 0 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}

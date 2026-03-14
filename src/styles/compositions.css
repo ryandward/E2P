@@ -156,47 +156,55 @@
 }
 
 
-/* ── Tab Grid: label column + data column with sticky header ── */
+/* ── Plot Frame: unified label column + data column with sticky header ── */
 
-.tab-grid {
+.plot-frame {
   --col-label-overhang: 0px;
   display: grid;
-  grid-template-columns: auto calc(var(--tab-grid-data-col) + var(--col-label-overhang) + var(--space-element));
-  width: max-content;
+  grid-template-columns: min-content calc(var(--plot-frame-data-col) + var(--col-label-overhang) + 2 * var(--space-element));
+  justify-self: start;
   overflow: visible;
 }
 
-.tab-grid__header {
+.plot-frame__header {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  row-gap: var(--space-inline);
+  contain: inline-size;
   margin-bottom: calc(1lh / 2);
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
 }
 
-.tab-grid__header > .tab-scroll {
-  grid-column: 1 / -1;
+.plot-frame__colnames {
+  display: flex;
 }
 
-.tab-grid__labels {
+.plot-frame__tabs {
+  overflow: hidden;
+  contain: inline-size;
+}
+
+.plot-frame__labels {
   /* Layout inherits from .plot-labels */
 }
 
-.tab-grid__columns {
+.plot-frame__x-labels {
   grid-column: 2;
+  position: relative;
   display: flex;
   align-items: flex-end;
+  min-height: calc(var(--col-label-h, 0px) + var(--space-element));
+  padding-top: var(--space-element);
 }
 
-.tab-grid__columns > * {
+.plot-frame__x-labels > * {
   height: 100%;
 }
 
-.tab-grid > :nth-child(even) {
-  padding-inline: var(--space-element);
+
+.plot-frame > .anchor,
+.plot-frame__x-labels {
+  margin-inline-start: var(--space-element);
 }
 
 
@@ -265,36 +273,4 @@
 
 
 
-/* ── Bar Plot: y-labels + data column with bottom x-axis ── */
-
-.bar-plot {
-  display: grid;
-  grid-template-columns: max-content var(--bar-plot-data-col);
-  width: max-content;
-}
-
-.bar-plot-frame {
-  display: grid;
-  grid-template-columns: auto;
-  width: min-content;
-}
-
-.bar-plot__header {
-  overflow: hidden;
-  min-width: 0;
-  margin-bottom: calc(1lh / 2);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-nav);
-}
-
-.bar-plot__y {
-  /* align-self needed because grid row includes x-axis area */
-  align-self: start;
-}
-
-.bar-plot__x {
-  position: relative;
-  height: calc(1lh + var(--space-element));
-  margin-top: var(--space-element);
-}
+/* (Bar Plot removed — unified into .plot-frame) */

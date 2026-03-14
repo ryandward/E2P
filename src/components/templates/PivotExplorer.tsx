@@ -9,8 +9,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FadeTransition, StableCounter } from "stablekit.ts";
-import { BarPlot, type HoverEvent, type BarSceneGraph } from "../plot/BarPlot";
-import { compile, NAME_COL } from "../../lib/plot";
+import { PlotFrame, type HoverEvent } from "../plot/PlotFrame";
+import { compile, niceDomain, NAME_COL } from "../../lib/plot";
 import type { DataFrame, PlotSpec } from "../../lib/plot/types";
 
 // ── Geometry Constants ──
@@ -159,14 +159,14 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
   const tabValues = useMemo(() => unique(groupByCol), [groupByCol]);
   const resolvedTab = tabValues.includes(activeTab) ? activeTab : tabValues[0];
 
-  // Global max for consistent x-axis across tabs.
-  const globalMax = useMemo(() => {
+  // Shared x-axis domain across all tabs for visual comparability.
+  const sharedDomain = useMemo(() => {
     const col = data.columns[metric] as Float32Array;
     let max = 0;
     for (let i = 0; i < col.length; i++) {
       if (col[i] > max) max = col[i];
     }
-    return max;
+    return niceDomain([0, max]);
   }, [data, metric]);
 
   // Filter data to rows matching resolvedTab, build PlotSpec.
@@ -176,7 +176,7 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
     const mCol = data.columns[metric] as Float32Array;
 
     const indices: number[] = [];
-    const thresholdAbs = threshold * globalMax;
+    const thresholdAbs = threshold * sharedDomain[1];
     for (let i = 0; i < data.length; i++) {
       if (gCol[i] === resolvedTab && mCol[i] >= thresholdAbs) indices.push(i);
     }
@@ -192,21 +192,21 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
       data: { columns: { [NAME_COL]: cat, [metric]: val }, length: indices.length },
       aes: { x: metric, y: NAME_COL, fill: NAME_COL },
       scales: {
-        x: { type: "linear", domain: [0, globalMax * 1.05] },
+        x: { type: "linear", domain: sharedDomain },
       },
       layers: [{ geom: "bar" }],
       width: BAR_W,
-      height: indices.length * STEP,
+      height: { step: STEP },
     };
-  }, [data, groupBy, otherDim, metric, resolvedTab, globalMax, threshold]);
+  }, [data, groupBy, otherDim, metric, resolvedTab, sharedDomain, threshold]);
 
   const graph = useMemo(
-    () => compile(spec) as BarSceneGraph,
+    () => compile(spec),
     [spec],
   );
 
   return (
-    <BarPlot
+    <PlotFrame
       spec={spec}
       graph={graph}
       onHover={setHover}
@@ -253,6 +253,6 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
       </>}
     >
       {hover && <PivotTooltip hover={hover} />}
-    </BarPlot>
+    </PlotFrame>
   );
 }
