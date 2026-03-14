@@ -175,6 +175,11 @@ function CorrelationTooltip({ hover, correlation }: {
 const LONGEST_GENE_LABEL = GENES.reduce((a, b) => a.length > b.length ? a : b);
 const LONGEST_TISSUE_LABEL = TISSUES.reduce((a, b) => a.length > b.length ? a : b);
 
+// TODO: CRITICAL — State is shared across both plots. Canopy controls in the
+// expression PlotFrame can mutate state (seed) that affects the correlation
+// PlotFrame. This violates the visual contract: a control inside one plot
+// must not affect another. PlotFrame must become a stateful widget that owns
+// its control state internally. See PlotFrame widget design discussion.
 export default function Expression() {
   const [threshold, setThreshold] = useState(0.3);
   const [ramp, setRamp] = useState<ColorRamp>("sequential");
