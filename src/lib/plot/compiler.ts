@@ -158,7 +158,12 @@ function inferNumericDomain(col: Float32Array): [number, number] {
 export function niceDomain(raw: [number, number]): [number, number] {
   const [lo, hi] = raw;
   const span = hi - lo;
-  if (span <= 0) return raw;
+  if (span <= 0) {
+    // Constant data: expand to a visible range around the value.
+    if (lo === 0) return [0, 1];
+    const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(lo))));
+    return [Math.floor(lo / mag) * mag, Math.ceil(lo / mag + 1) * mag];
+  }
   const step = niceStep(span / 5);
   return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
 }
