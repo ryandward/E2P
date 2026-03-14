@@ -107,8 +107,9 @@ describe("compile", () => {
   it("produces rect buffers for tile geom", () => {
     const graph = compile(makeTileSpec(2, 2));
     expect(graph.layers.length).toBe(1);
-    expect(graph.layers[0].kind).toBe("rect");
-    expect(graph.layers[0].count).toBe(4);
+    const layer = graph.layers[0];
+    expect(layer.kind).toBe("rect");
+    if (layer.kind === "rect") expect(layer.count).toBe(4);
   });
 
   it("resolves band y + continuous x for bar geom", () => {
