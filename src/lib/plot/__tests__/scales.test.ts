@@ -40,6 +40,11 @@ describe("linearScale", () => {
     expect(s.domain).toEqual([0, 10]);
     expect(s.range).toEqual([0, 200]);
   });
+
+  it("returns NaN for NaN input", () => {
+    const s = linearScale([0, 100], [0, 500]);
+    expect(Number.isNaN(s(NaN))).toBe(true);
+  });
 });
 
 describe("bandScale", () => {

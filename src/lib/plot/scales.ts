@@ -24,6 +24,7 @@ export function linearScale(
   const rSpan = r1 - r0;
 
   const scale = ((value: number): number => {
+    if (value !== value) return NaN; // Propagate NaN — geometry emitters check it
     let t = dSpan === 0 ? 0 : (value - d0) / dSpan;
     if (clamp) t = Math.max(0, Math.min(1, t));
     return r0 + t * rSpan;
@@ -240,6 +241,7 @@ export function colorScale(
 
   // Normalize domain value to 0..1
   function normalize(value: number): number {
+    if (value !== value) return NaN; // NaN guard — packColors checks and sets alpha 0
     if (dSpan === 0) return 0;
     return Math.max(0, Math.min(1, (value - d0) / dSpan));
   }

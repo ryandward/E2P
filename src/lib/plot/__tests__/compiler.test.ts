@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { compile, niceDomain } from "../compiler";
+import { compile, niceDomain, packColors } from "../compiler";
+import { colorScale } from "../scales";
 import type { PlotSpec } from "../types";
 
 // ── niceDomain ──
@@ -205,5 +206,117 @@ describe("compile", () => {
     const spec = makeBarSpec(["a"], [10]);
     spec.layers = [{ geom: "hexbin" as "bar" }];
     expect(() => compile(spec)).toThrow(/not implemented/);
+  });
+});
+
+// ── NaN handling ──
+
+describe("NaN handling", () => {
+  it("packColors sets alpha to 0 for NaN values", () => {
+    const scale = colorScale("sequential", [0, 1]);
+    const col = new Float32Array([0.5, NaN, 0.8, NaN]);
+    const { fillA, fillR } = packColors(col, scale, 4);
+
+    // Valid values get full opacity
+    expect(fillA[0]).toBe(255);
+    expect(fillA[2]).toBe(255);
+    expect(fillR[0]).toBeGreaterThan(0);
+
+    // NaN values get transparent
+    expect(fillA[1]).toBe(0);
+    expect(fillA[3]).toBe(0);
+    expect(fillR[1]).toBe(0);
+    expect(fillR[3]).toBe(0);
+  });
+
+  it("compile handles NaN in continuous data without crashing", () => {
+    const spec: PlotSpec = {
+      data: {
+        columns: {
+          cat: ["a", "b", "c"],
+          val: new Float32Array([10, NaN, 30]),
+        },
+        length: 3,
+      },
+      aes: { x: "val", y: "cat" },
+      layers: [{ geom: "bar" }],
+      width: 480,
+      height: { step: 38 },
+    };
+
+    const graph = compile(spec);
+    expect(graph.layers.length).toBe(1);
+    const layer = graph.layers[0];
+    if (layer.kind === "rect") expect(layer.count).toBe(3);
+  });
+
+  it("compile handles NaN in fill column — transparent cells", () => {
+    const spec: PlotSpec = {
+      data: {
+        columns: {
+          x: ["a", "b"],
+          y: ["r0", "r0"],
+          v: new Float32Array([0.5, NaN]),
+        },
+        length: 2,
+      },
+      aes: { x: "x", y: "y", fill: "v" },
+      scales: { fill: { type: "sequential", domain: [0, 1] } },
+      layers: [{ geom: "tile" }],
+      width: { step: 34 },
+      height: { step: 34 },
+    };
+
+    const graph = compile(spec);
+    const layer = graph.layers[0];
+    if (layer.kind === "rect") {
+      // First cell: valid, opaque
+      expect(layer.fillA[0]).toBe(255);
+      // Second cell: NaN, transparent
+      expect(layer.fillA[1]).toBe(0);
+    }
+  });
+
+  it("inferNumericDomain ignores NaN values", () => {
+    const spec: PlotSpec = {
+      data: {
+        columns: {
+          cat: ["a", "b", "c"],
+          val: new Float32Array([10, NaN, 30]),
+        },
+        length: 3,
+      },
+      aes: { x: "val", y: "cat" },
+      layers: [{ geom: "bar" }],
+      width: 480,
+      height: { step: 38 },
+    };
+
+    const graph = compile(spec);
+    if (graph.scales.x.kind === "continuous") {
+      expect(graph.scales.x.domain[0]).toBe(10);
+      expect(graph.scales.x.domain[1]).toBe(30);
+    }
+  });
+
+  it("all-NaN column produces fallback domain", () => {
+    const spec: PlotSpec = {
+      data: {
+        columns: {
+          cat: ["a", "b"],
+          val: new Float32Array([NaN, NaN]),
+        },
+        length: 2,
+      },
+      aes: { x: "val", y: "cat" },
+      layers: [{ geom: "bar" }],
+      width: 480,
+      height: { step: 38 },
+    };
+
+    const graph = compile(spec);
+    if (graph.scales.x.kind === "continuous") {
+      expect(graph.scales.x.domain).toEqual([0, 1]);
+    }
   });
 });

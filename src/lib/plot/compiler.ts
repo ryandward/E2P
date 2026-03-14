@@ -67,7 +67,13 @@ export function packColors(
   const fillA = new Uint8Array(count);
 
   for (let i = 0; i < count; i++) {
-    const rgba = scale.toRGBA(col[i]);
+    const v = col[i];
+    if (v !== v) {
+      // NaN: transparent. The painter skips it. The scientist sees a gap.
+      // fillR/G/B default to 0, fillA stays 0.
+      continue;
+    }
+    const rgba = scale.toRGBA(v);
     fillR[i] = rgba[0];
     fillG[i] = rgba[1];
     fillB[i] = rgba[2];
