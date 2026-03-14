@@ -178,8 +178,6 @@
 
 .plot-frame__colnames {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   box-shadow: var(--shadow-md);
   margin-bottom: calc(1lh / 2);
@@ -198,13 +196,12 @@
 }
 
 .plot-frame__x-labels {
-  grid-column: 2;
   position: relative;
   display: flex;
   align-items: flex-end;
   min-height: calc(var(--col-label-h, 0px) + var(--space-element));
   padding-top: var(--space-element);
-  margin-inline-start: var(--space-element);
+  margin-inline-start: calc(var(--label-col-w, 0px) + var(--space-element));
 }
 
 .plot-frame__x-labels > * {

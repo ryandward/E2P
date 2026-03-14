@@ -193,8 +193,10 @@ export function PlotFrame({
 
   // Measure label column width and tabs height after render.
   useLayoutEffect(() => {
-    if (labelsRef.current) {
-      setLabelColW(labelsRef.current.offsetWidth);
+    if (gridRef.current) {
+      const cols = getComputedStyle(gridRef.current).gridTemplateColumns;
+      const firstCol = parseFloat(cols);
+      if (isFinite(firstCol)) setLabelColW(firstCol);
     }
     if (tabsRef.current) {
       setTabsH(tabsRef.current.offsetHeight);
@@ -319,7 +321,7 @@ export function PlotFrame({
         <Plot spec={spec} onHover={onHover} onClick={onClick}>
           {children}
         </Plot>
-        <pre ref={debugRef} style={{ fontSize: 10, color: "lime", background: "black", padding: 8, gridColumn: "1 / -1" }} />
+        <pre ref={debugRef} style={{ fontSize: 10, color: "lime", background: "black", padding: 8, gridColumn: "1 / -1", contain: "inline-size" }} />
       </div>
 
       {canopy && (
