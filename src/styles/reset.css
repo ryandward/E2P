@@ -42,6 +42,7 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+  accent-color: var(--color-interactive);
   -webkit-appearance: none;
   appearance: none;
 }

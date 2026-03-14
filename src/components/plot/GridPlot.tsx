@@ -6,11 +6,13 @@
  *   - Row labels pinned to the left via CSS Grid
  *   - Column label height measured via useLayoutEffect trigonometry
  *
- * All geometry (step, bandwidth, gap) is derived from the compiled
- * SceneGraph's resolved BandScales — no hardcoded constants.
+ * Requires the y-axis to be a BandScale (for row labels). The x-axis
+ * can be either BandScale (heatmap columns) or ContinuousScale (bar charts).
+ * Column labels are rendered only when x is a BandScale.
  */
 
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -23,6 +25,7 @@ import type { PlotSpec, SceneGraph, BandScale } from "../../lib/plot/types";
 
 export type { HoverEvent };
 
+/** Scene graph where both axes are band scales (heatmaps, tile grids). */
 export type BandSceneGraph = SceneGraph & {
   scales: { x: BandScale; y: BandScale };
 };
@@ -61,20 +64,40 @@ export function GridPlot({
   const [colLabelHeight, setColLabelHeight] = useState(0);
   const [colOverhang, setColOverhang] = useState(0);
 
+  const debugRef = useRef<HTMLPreElement>(null);
   useScrollSnap(gridRef, snapKey);
 
-  const xScale = graph.scales.x;
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || !debugRef.current) return;
+    const header = grid.querySelector('.tab-grid__header') as HTMLElement;
+    const tabScroll = grid.querySelector('.tab-scroll') as HTMLElement;
+    const track = grid.querySelector('.tab-scroll__track') as HTMLElement;
+    const labels = grid.querySelector('.plot-labels') as HTMLElement;
+    debugRef.current.textContent = [
+      `grid: ${grid.offsetWidth}`,
+      `header: ${header?.offsetWidth}`,
+      `tabScroll: ${tabScroll?.offsetWidth}`,
+      `track: ${track?.offsetWidth} (scrollW: ${track?.scrollWidth})`,
+      `labels: ${labels?.offsetWidth}`,
+      `spec.width: ${spec.width}`,
+      `grid computed width: ${getComputedStyle(grid).width}`,
+      `grid parent width: ${(grid.parentElement as HTMLElement)?.offsetWidth}`,
+    ].join('\n');
+  });
+
+  const xScaleRaw = graph.scales.x;
   const yScale = graph.scales.y;
+  const xBand = xScaleRaw.kind === "band" ? xScaleRaw : null;
   const xTicks = graph.axes.x.ticks;
   const yTicks = graph.axes.y.ticks;
-  const xStep = xScale.step;
-  const yStep = yScale.step;
-  const halfBand = xScale.bandwidth / 2;
+  const yStep = Math.round(yScale.step);
 
   // Measure column label geometry from the DOM.
   // offsetWidth gives unrotated text width (CSS transform doesn't affect it).
   // Height and overhang are derived from exact text width + angle from CSS.
   useLayoutEffect(() => {
+    if (!xBand) return;
     const container = colsContainerRef.current;
     if (!container) return;
     const labels = container.querySelectorAll<HTMLSpanElement>(".axis-label--col");
@@ -96,8 +119,8 @@ export function GridPlot({
 
     const lastWidth = labels[labels.length - 1].offsetWidth;
     setColLabelHeight(Math.ceil(maxH));
-    setColOverhang(Math.max(0, Math.ceil(lastWidth * cosA - halfBand - xScale.gap)));
-  }, [xTicks, halfBand, xScale.gap]);
+    setColOverhang(Math.max(0, Math.ceil(lastWidth * cosA - xBand.bandwidth / 2 - xBand.gap)));
+  }, [xTicks, xBand]);
 
   return (
     <div
@@ -110,30 +133,30 @@ export function GridPlot({
     >
       {/* Sticky header: tab bar + column labels */}
       <div className="tab-grid__header surface-raised shadow-md radius-sm">
-        <div className="cluster tab-grid__bar tab-bar" role="tablist">
-          {header}
-        </div>
-        {/* Column labels */}
-        <div ref={colsContainerRef} className="tab-grid__columns" style={{ height: colLabelHeight }}>
-          {xTicks.map((tick) => (
-            <div
-              key={tick.label}
-              className="anchor"
-              style={{
-                width: xStep,
-                "--col-center": `${halfBand}px`,
-              } as React.CSSProperties}
-            >
-              <span className="axis-label axis-label--col">
-                {tick.label}
-              </span>
-            </div>
-          ))}
-        </div>
+        {header}
+        {/* Column labels — only rendered when x is a band scale */}
+        {xBand && (
+          <div ref={colsContainerRef} className="tab-grid__columns" style={{ height: colLabelHeight }}>
+            {xTicks.map((tick) => (
+              <div
+                key={tick.label}
+                className="anchor"
+                style={{
+                  width: xBand.step,
+                  "--col-center": `${xBand.bandwidth / 2}px`,
+                } as React.CSSProperties}
+              >
+                <span className="axis-label axis-label--col">
+                  {tick.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Row labels (col 1) */}
-      <div className="tab-grid__labels surface-raised shadow-md radius-sm">
+      <div className="plot-labels tab-grid__labels surface-raised shadow-md radius-sm promote-layer">
         {/* Reserve: identical rendering path as real labels — zero box-model mismatch */}
         <div className="axis-label axis-label--row tab-reserve" aria-hidden="true">
           {longestRowLabel}
@@ -153,6 +176,7 @@ export function GridPlot({
       <Plot spec={spec} onHover={onHover} onClick={onClick}>
         {children}
       </Plot>
+      <pre ref={debugRef} style={{ fontSize: 10, color: "lime", background: "black", padding: 8, gridColumn: "1 / -1" }} />
     </div>
   );
 }

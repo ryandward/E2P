@@ -9,7 +9,7 @@
  * per call. Safe for compile()-time bulk packing into Uint8Array buffers.
  */
 
-import type { ContinuousScale, BandScale, ColorScale, ColorScaleType } from "./types";
+import type { ContinuousScale, BandScale, ColorScale, OrdinalColorScale, ColorScaleType } from "./types";
 
 // ── Linear Scale ──
 
@@ -231,6 +231,8 @@ export function colorScale(
     case "sequential": rgbFn = sequentialRgb; break;
     case "diverging": rgbFn = divergingRgb; break;
     case "viridis": rgbFn = viridisRgb; break;
+    case "ordinal":
+      throw new Error("Use ordinalColorScale() for ordinal color mapping");
   }
 
   // The single reusable tuple — mutated in place by toRGBA.
@@ -259,6 +261,100 @@ export function colorScale(
     rgba[2] = rgb[2];
     // rgba[3] stays 255 — full opacity by default.
     // Caller can override alpha via a separate alpha channel.
+    return rgba;
+  };
+
+  return scale;
+}
+
+// ── Color String Parsing ──
+
+/**
+ * Parse a CSS color string to [R, G, B] bytes.
+ * Supports #RRGGBB, #RGB, hsl(h, s%, l%), and rgb(r, g, b).
+ */
+function parseColorToRgb(color: string): [number, number, number] {
+  if (color.startsWith("#")) {
+    const hex =
+      color.length === 4
+        ? color[1] + color[1] + color[2] + color[2] + color[3] + color[3]
+        : color.slice(1);
+    return [
+      parseInt(hex.slice(0, 2), 16),
+      parseInt(hex.slice(2, 4), 16),
+      parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+  const hslMatch = color.match(
+    /hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*\)/,
+  );
+  if (hslMatch) {
+    return hslToRgb(
+      parseFloat(hslMatch[1]),
+      parseFloat(hslMatch[2]),
+      parseFloat(hslMatch[3]),
+    );
+  }
+  const rgbMatch = color.match(
+    /rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/,
+  );
+  if (rgbMatch) {
+    return [
+      Math.round(parseFloat(rgbMatch[1])),
+      Math.round(parseFloat(rgbMatch[2])),
+      Math.round(parseFloat(rgbMatch[3])),
+    ];
+  }
+  return [128, 128, 128]; // fallback: mid-gray
+}
+
+// ── Default Ordinal Palette (Tableau 10) ──
+
+export const DEFAULT_ORDINAL_COLORS = [
+  "#4e79a7", "#f28e2b", "#e15759", "#76b7b2",
+  "#59a14f", "#edc948", "#b07aa1", "#ff9da7",
+  "#9c755f", "#bab0ac",
+];
+
+// ── Ordinal Color Scale Factory ──
+
+/**
+ * Create an OrdinalColorScale from a categorical domain and a color palette.
+ *
+ * Maps each domain value to a color by index, wrapping if the domain
+ * exceeds the palette length. Colors can be hex (#RRGGBB), hsl(), or rgb().
+ *
+ * toRGBA reuses a single mutable tuple — same contract as colorScale.
+ */
+export function ordinalColorScale(
+  domain: string[],
+  colors: string[],
+): OrdinalColorScale {
+  const n = colors.length;
+  const palette = colors.map(parseColorToRgb);
+
+  const indexMap = new Map<string, number>();
+  for (let i = 0; i < domain.length; i++) {
+    indexMap.set(domain[i], i % n);
+  }
+
+  const rgba: [number, number, number, number] = [0, 0, 0, 255];
+
+  const scale = ((value: string): string => {
+    const idx = indexMap.get(value) ?? 0;
+    const [r, g, b] = palette[idx % n];
+    return `rgba(${r},${g},${b},1)`;
+  }) as OrdinalColorScale;
+
+  scale.kind = "ordinal-color";
+  scale.domain = domain;
+
+  scale.toRGBA = (value: string): readonly [number, number, number, number] => {
+    const idx = indexMap.get(value) ?? 0;
+    const rgb = palette[idx % n];
+    rgba[0] = rgb[0];
+    rgba[1] = rgb[1];
+    rgba[2] = rgb[2];
     return rgba;
   };
 

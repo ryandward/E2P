@@ -36,7 +36,7 @@ export interface StatSpec {
 // ── Scale Spec (declarative, pre-resolution) ──
 
 export type PositionScaleType = "linear" | "log" | "band" | "ordinal";
-export type ColorScaleType = "sequential" | "diverging" | "viridis";
+export type ColorScaleType = "sequential" | "diverging" | "viridis" | "ordinal";
 
 export interface ScaleSpec {
   type: PositionScaleType | ColorScaleType;
@@ -48,7 +48,7 @@ export interface ScaleSpec {
 // ── Layer Spec ──
 
 export interface LayerSpec {
-  geom: "tile" | "point" | "rect" | "segment" | "area" | "line";
+  geom: "tile" | "bar" | "point" | "rect" | "segment" | "area" | "line";
   data?: DataFrame;
   aes?: Partial<AesMapping>;
   stat?: StatSpec;
@@ -95,12 +95,20 @@ export interface ColorScale {
   domain: [number, number];
 }
 
-export type Scale = ContinuousScale | BandScale | ColorScale;
+export interface OrdinalColorScale {
+  kind: "ordinal-color";
+  (value: string): string;
+  toRGBA(value: string): readonly [number, number, number, number];
+  domain: string[];
+}
+
+export type FillScale = ColorScale | OrdinalColorScale;
+export type Scale = ContinuousScale | BandScale | ColorScale | OrdinalColorScale;
 
 export interface ResolvedScales {
   x: ContinuousScale | BandScale;
   y: ContinuousScale | BandScale;
-  fill?: ColorScale;
+  fill?: FillScale;
   size?: ContinuousScale;
   alpha?: ContinuousScale;
 }

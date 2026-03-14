@@ -9,6 +9,8 @@ export type {
   ContinuousScale,
   BandScale,
   ColorScale,
+  OrdinalColorScale,
+  FillScale,
   Scale,
   ResolvedScales,
   RectBuffers,
@@ -19,7 +21,7 @@ export type {
   SceneGraph,
 } from "./types";
 
-export { linearScale, bandScale, colorScale } from "./scales";
+export { linearScale, bandScale, colorScale, ordinalColorScale, DEFAULT_ORDINAL_COLORS } from "./scales";
 export type { ColorRamp } from "./scales";
 
 export {
@@ -36,3 +38,6 @@ export { getPainter } from "./painters";
 
 export { hitTest } from "./hitTest";
 export type { HitResult } from "./hitTest";
+
+/** Standard column name for categorical row labels across the viz library. */
+export const NAME_COL = "name";

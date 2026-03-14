@@ -4,8 +4,7 @@
  * Pure function. No React, no Canvas, no DOM.
  * Called once per data/spec change. The rAF loop never touches this.
  *
- * Phase 1: implements the full pipeline for geom: "tile" only,
- * emitting RectBuffers with pre-packed RGBA colors.
+ * Supports geom: "tile" (heatmap cells) and "bar" (horizontal/vertical bars).
  */
 
 import type {
@@ -21,10 +20,12 @@ import type {
   ContinuousScale,
   BandScale,
   ColorScale,
+  OrdinalColorScale,
+  FillScale,
   ColorScaleType,
   AxisTick,
 } from "./types";
-import { linearScale, bandScale, colorScale } from "./scales";
+import { linearScale, bandScale, colorScale, ordinalColorScale, DEFAULT_ORDINAL_COLORS } from "./scales";
 
 // ── Resolved Channel ──
 
@@ -42,25 +43,30 @@ type ResolvedChannel =
 
 // ── Color Packing ──
 
+type FillChannels = {
+  fillR: Uint8Array;
+  fillG: Uint8Array;
+  fillB: Uint8Array;
+  fillA: Uint8Array;
+};
+
 /**
- * Resolve fill values through a color scale and write into
- * separate R/G/B/A Uint8Arrays. Called once during compile().
- *
+ * Pack continuous fill values through a ColorScale into RGBA byte arrays.
  * colorScale.toRGBA() reuses an internal tuple — we copy each
- * result immediately into the byte arrays. Zero intermediate allocation.
+ * result immediately. Zero intermediate allocation.
  */
 export function packColors(
-  normalized: Float32Array,
+  col: Float32Array,
   scale: ColorScale,
   count: number,
-): { fillR: Uint8Array; fillG: Uint8Array; fillB: Uint8Array; fillA: Uint8Array } {
+): FillChannels {
   const fillR = new Uint8Array(count);
   const fillG = new Uint8Array(count);
   const fillB = new Uint8Array(count);
   const fillA = new Uint8Array(count);
 
   for (let i = 0; i < count; i++) {
-    const rgba = scale.toRGBA(normalized[i]);
+    const rgba = scale.toRGBA(col[i]);
     fillR[i] = rgba[0];
     fillG[i] = rgba[1];
     fillB[i] = rgba[2];
@@ -68,6 +74,56 @@ export function packColors(
   }
 
   return { fillR, fillG, fillB, fillA };
+}
+
+/**
+ * Pack categorical fill values through an OrdinalColorScale into RGBA byte arrays.
+ */
+function packOrdinalColors(
+  col: string[],
+  scale: OrdinalColorScale,
+  count: number,
+): FillChannels {
+  const fillR = new Uint8Array(count);
+  const fillG = new Uint8Array(count);
+  const fillB = new Uint8Array(count);
+  const fillA = new Uint8Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const rgba = scale.toRGBA(col[i]);
+    fillR[i] = rgba[0];
+    fillG[i] = rgba[1];
+    fillB[i] = rgba[2];
+    fillA[i] = rgba[3];
+  }
+
+  return { fillR, fillG, fillB, fillA };
+}
+
+/**
+ * Resolve fill colors for a geom layer. Dispatches to the correct
+ * packing function based on the fill scale's kind.
+ */
+function resolveFillColors(
+  data: DataFrame,
+  aes: AesMapping,
+  fillScale: FillScale | undefined,
+  count: number,
+): FillChannels {
+  if (aes.fill && fillScale) {
+    const fillCol = data.columns[aes.fill];
+    if (fillScale.kind === "ordinal-color") {
+      return packOrdinalColors(fillCol as string[], fillScale, count);
+    }
+    return packColors(fillCol as Float32Array, fillScale, count);
+  }
+  // No fill mapping — default to opaque mid-gray.
+  return {
+    fillR: new Uint8Array(count).fill(128),
+    fillG: new Uint8Array(count).fill(128),
+    fillB: new Uint8Array(count).fill(128),
+    fillA: new Uint8Array(count).fill(255),
+  };
 }
 
 // ── Stat Resolution (Phase 1: identity only) ──
@@ -146,16 +202,43 @@ function resolvePositionChannel(
 }
 
 /**
- * Resolve a color scale from a ScaleSpec and data column.
+ * Resolve a continuous color scale from a ScaleSpec and numeric column.
  * Defaults to "sequential" ramp if not specified.
  */
-function resolveColorScale(
+function resolveContinuousColorScale(
   spec: ScaleSpec | undefined,
   col: Float32Array,
 ): ColorScale {
   const ramp = (spec?.type ?? "sequential") as ColorScaleType;
   const domain = (spec?.domain as [number, number] | undefined) ?? inferNumericDomain(col);
   return colorScale(ramp, domain);
+}
+
+/**
+ * Resolve an ordinal color scale from a ScaleSpec and string column.
+ * Uses DEFAULT_ORDINAL_COLORS if no range is specified.
+ */
+function resolveOrdinalColorScale(
+  spec: ScaleSpec | undefined,
+  col: string[],
+): OrdinalColorScale {
+  const domain = (spec?.domain as string[] | undefined) ?? inferCategoricalDomain(col);
+  const colors = (spec?.range as string[] | undefined) ?? DEFAULT_ORDINAL_COLORS;
+  return ordinalColorScale(domain, colors);
+}
+
+/**
+ * Resolve a fill scale from a ScaleSpec and data column.
+ * Dispatches to continuous or ordinal based on the column type.
+ */
+function resolveFillScale(
+  spec: ScaleSpec | undefined,
+  col: DataColumn,
+): FillScale {
+  if (col instanceof Float32Array) {
+    return resolveContinuousColorScale(spec, col);
+  }
+  return resolveOrdinalColorScale(spec, col);
 }
 
 // ── Geom Emitters ──
@@ -177,7 +260,7 @@ function emitTile(
   aes: AesMapping,
   xCh: ResolvedChannel,
   yCh: ResolvedChannel,
-  fillScale: ColorScale | undefined,
+  fillScale: FillScale | undefined,
   _params: Record<string, unknown> | undefined,
 ): RectBuffers {
   const count = data.length;
@@ -236,27 +319,65 @@ function emitTile(
     }
   }
 
-  // Resolve fill colors.
-  let fillR: Uint8Array;
-  let fillG: Uint8Array;
-  let fillB: Uint8Array;
-  let fillA: Uint8Array;
+  const { fillR, fillG, fillB, fillA } = resolveFillColors(data, aes, fillScale, count);
+  return { kind: "rect", count, x, y, w, h, fillR, fillG, fillB, fillA, dataIndex };
+}
 
-  if (aes.fill && fillScale) {
-    const fillCol = data.columns[aes.fill] as Float32Array;
-    const packed = packColors(fillCol, fillScale, count);
-    fillR = packed.fillR;
-    fillG = packed.fillG;
-    fillB = packed.fillB;
-    fillA = packed.fillA;
+/**
+ * Emit RectBuffers for geom: "bar".
+ *
+ * Bars span from the scale origin (0) to the data value along the
+ * continuous axis, with width/height from the band scale's bandwidth.
+ *
+ * Supports both orientations:
+ *   Horizontal — y is band (categories), x is continuous (values)
+ *   Vertical   — x is band (categories), y is continuous (values)
+ */
+function emitBar(
+  data: DataFrame,
+  aes: AesMapping,
+  xCh: ResolvedChannel,
+  yCh: ResolvedChannel,
+  fillScale: FillScale | undefined,
+  _params: Record<string, unknown> | undefined,
+): RectBuffers {
+  const count = data.length;
+
+  const x = new Float32Array(count);
+  const y = new Float32Array(count);
+  const w = new Float32Array(count);
+  const h = new Float32Array(count);
+  const dataIndex = new Uint32Array(count);
+
+  if (xCh.kind === "band" && yCh.kind === "continuous") {
+    // Vertical bars: categories on x, values on y.
+    const bw = xCh.scale.bandwidth;
+    const baseline = yCh.scale(0);
+    for (let i = 0; i < count; i++) {
+      const top = yCh.scale(yCh.col[i]);
+      x[i] = xCh.scale(xCh.col[i]);
+      y[i] = Math.min(top, baseline);
+      w[i] = bw;
+      h[i] = Math.abs(baseline - top);
+      dataIndex[i] = i;
+    }
+  } else if (xCh.kind === "continuous" && yCh.kind === "band") {
+    // Horizontal bars: values on x, categories on y.
+    const bh = yCh.scale.bandwidth;
+    const baseline = xCh.scale(0);
+    for (let i = 0; i < count; i++) {
+      const right = xCh.scale(xCh.col[i]);
+      x[i] = Math.min(right, baseline);
+      y[i] = yCh.scale(yCh.col[i]);
+      w[i] = Math.abs(right - baseline);
+      h[i] = bh;
+      dataIndex[i] = i;
+    }
   } else {
-    // No fill mapping — default to opaque mid-gray.
-    fillR = new Uint8Array(count).fill(128);
-    fillG = new Uint8Array(count).fill(128);
-    fillB = new Uint8Array(count).fill(128);
-    fillA = new Uint8Array(count).fill(255);
+    throw new Error("emitBar requires one band scale and one continuous scale");
   }
 
+  const { fillR, fillG, fillB, fillA } = resolveFillColors(data, aes, fillScale, count);
   return { kind: "rect", count, x, y, w, h, fillR, fillG, fillB, fillA, dataIndex };
 }
 
@@ -268,24 +389,52 @@ function emitGeom(
   aes: AesMapping,
   xCh: ResolvedChannel,
   yCh: ResolvedChannel,
-  fillScale: ColorScale | undefined,
+  fillScale: FillScale | undefined,
   params: Record<string, unknown> | undefined,
 ): GeomBuffers {
   switch (geom) {
     case "tile":
     case "rect":
       return emitTile(data, aes, xCh, yCh, fillScale, params);
+    case "bar":
+      return emitBar(data, aes, xCh, yCh, fillScale, params);
     default:
-      throw new Error(`compile: geom "${geom}" not implemented (Phase 1 supports "tile" only)`);
+      throw new Error(`compile: geom "${geom}" not implemented`);
   }
 }
 
 // ── Axis Tick Generation ──
 
 /**
+ * Choose a "nice" tick step size for continuous scales.
+ * Heckbert's algorithm — rounds to the nearest 1, 2, or 5 × 10^n.
+ */
+function niceStep(rawStep: number): number {
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const fraction = rawStep / magnitude;
+  if (fraction < 1.5) return magnitude;
+  if (fraction < 3.5) return 2 * magnitude;
+  if (fraction < 7.5) return 5 * magnitude;
+  return 10 * magnitude;
+}
+
+/**
+ * Format a numeric tick label for axis display.
+ * Abbreviates thousands (k) and millions (M).
+ */
+function formatTickLabel(value: number): string {
+  if (value === 0) return "0";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${+(value / 1_000_000).toPrecision(3)}M`;
+  if (abs >= 1_000) return `${+(value / 1_000).toPrecision(3)}k`;
+  if (Number.isInteger(value)) return String(value);
+  return value.toPrecision(3);
+}
+
+/**
  * Generate tick labels and pixel positions from a resolved position scale.
  * BandScale: one tick per domain value, centered within each band.
- * ContinuousScale: returns empty (numeric ticks not yet implemented).
+ * ContinuousScale: ~5 evenly spaced nice-number ticks across the domain.
  */
 function buildAxisTicks(scale: ContinuousScale | BandScale): AxisTick[] {
   if (scale.kind === "band") {
@@ -295,7 +444,23 @@ function buildAxisTicks(scale: ContinuousScale | BandScale): AxisTick[] {
       position: scale(label) + half,
     }));
   }
-  return [];
+
+  // Continuous scale: generate nice ticks.
+  const [lo, hi] = scale.domain;
+  const span = hi - lo;
+  if (span <= 0) return [];
+
+  const step = niceStep(span / 5);
+  const ticks: AxisTick[] = [];
+  const start = Math.ceil(lo / step) * step;
+
+  for (let v = start; v <= hi + step * 1e-9; v += step) {
+    ticks.push({
+      label: formatTickLabel(v),
+      position: scale(v),
+    });
+  }
+  return ticks;
 }
 
 // ── Compiler ──
@@ -314,7 +479,7 @@ export function compile(spec: PlotSpec): SceneGraph {
   const layers: GeomBuffers[] = [];
   let xChannel: ResolvedChannel | undefined;
   let yChannel: ResolvedChannel | undefined;
-  let fillScale: ColorScale | undefined;
+  let fillScale: FillScale | undefined;
 
   for (const layerSpec of spec.layers) {
     // 1. Merge per-layer data/aes with plot-level defaults.
@@ -335,8 +500,7 @@ export function compile(spec: PlotSpec): SceneGraph {
       yChannel = resolvePositionChannel(spec.scales?.y, yCol, [0, spec.height]);
     }
     if (aes.fill && !fillScale) {
-      const fillCol = transformed.columns[aes.fill] as Float32Array;
-      fillScale = resolveColorScale(spec.scales?.fill, fillCol);
+      fillScale = resolveFillScale(spec.scales?.fill, transformed.columns[aes.fill]);
     }
 
     // 4. Emit geometry buffers.

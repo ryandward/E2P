@@ -143,6 +143,19 @@
 }
 
 
+/* ── Plot Labels: shared row-label column for all plot wrappers ── */
+
+.plot-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: max-content;
+  padding-inline: var(--space-element);
+  margin-right: calc(1lh / 2);
+  clip-path: inset(0 -100% -100% -100%);
+}
+
+
 /* ── Tab Grid: label column + data column with sticky header ── */
 
 .tab-grid {
@@ -164,18 +177,12 @@
   z-index: var(--z-nav);
 }
 
-.tab-grid__labels {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  padding-inline: var(--space-element);
-  margin-right: calc(1lh / 2);
-  clip-path: inset(0 -100% -100% -100%);
+.tab-grid__header > .tab-scroll {
+  grid-column: 1 / -1;
 }
 
-.tab-grid__bar {
-  grid-column: 1 / -1;
-  --cluster-gap: 0;
+.tab-grid__labels {
+  /* Layout inherits from .plot-labels */
 }
 
 .tab-grid__columns {
@@ -230,4 +237,64 @@
   flex: 1;
   min-width: 0;
   height: var(--legend-bar-height);
+}
+
+
+/* ── Tab Scroll: single-row tab bar with overflow chevron ── */
+
+.tab-scroll {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.tab-scroll__nav {
+  flex: none;
+  --button-padding: var(--space-tight);
+  border-radius: 0;
+  border-block: none;
+}
+
+.tab-scroll__track {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+
+
+/* ── Bar Plot: y-labels + data column with bottom x-axis ── */
+
+.bar-plot {
+  display: grid;
+  grid-template-columns: max-content var(--bar-plot-data-col);
+  width: max-content;
+}
+
+.bar-plot-frame {
+  display: grid;
+  grid-template-columns: auto;
+  width: min-content;
+}
+
+.bar-plot__header {
+  overflow: hidden;
+  min-width: 0;
+  margin-bottom: calc(1lh / 2);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+}
+
+.bar-plot__y {
+  /* align-self needed because grid row includes x-axis area */
+  align-self: start;
+}
+
+.bar-plot__x {
+  position: relative;
+  height: calc(1lh + var(--space-element));
+  margin-top: var(--space-element);
 }
