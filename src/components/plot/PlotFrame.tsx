@@ -7,9 +7,10 @@
  *     (rotated column labels for band, tick marks for continuous)
  *   - Row labels pinned to the left via CSS Grid
  *
- * Layout uses four emergent measurements as CSS custom properties:
+ * Layout uses five emergent measurements as CSS custom properties:
  *   --plot-col-h:        rotated column label height (trigonometry)
  *   --plot-col-overhang: last label's horizontal extent past data column
+ *   --plot-row-h:        row label height (band scale step, rounded)
  *   --plot-label-w:      grid column 1 track width (measured from computed style)
  *   --plot-tabs-h:       tab bar height for co-pinning (measured from DOM)
  *
@@ -259,6 +260,7 @@ export function PlotFrame({
           "--plot-data-w": `${graph.width}px`,
           "--plot-col-overhang": `${colOverhang}px`,
           "--plot-col-h": `${colH}px`,
+          "--plot-row-h": `${yStep}px`,
           "--plot-label-w": `${labelW}px`,
           "--plot-tabs-h": `${tabsH}px`,
         } as React.CSSProperties}
@@ -290,7 +292,6 @@ export function PlotFrame({
               <div
                 key={tick.label}
                 className="axis-label axis-label--row"
-                style={{ height: yStep }}
                 title={tick.label}
               >
                 <span>{tick.label}</span>
