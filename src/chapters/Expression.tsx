@@ -224,6 +224,7 @@ export default function Expression() {
     <article className="region center flow">
       <h1>Expression</h1>
       <p>Synthetic gene expression heatmap (32 genes × 10 tissues) with a tissue-tissue correlation matrix below.</p>
+      <p><strong>Known issue:</strong> The seed slider in the expression plot's controls regenerates the correlation plot below. Controls inside one plot must not affect another — PlotFrame needs to own its control state internally to enforce this boundary.</p>
 
       <div className="canvas-frame viz-frame">
         <PlotFrame
