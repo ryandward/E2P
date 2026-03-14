@@ -7,6 +7,11 @@
  *     (rotated column labels for band, tick marks for continuous)
  *   - Row labels pinned to the left via CSS Grid
  *
+ * Layout uses three emergent measurements as CSS custom properties:
+ *   --col-label-h:   rotated column label height (trigonometry)
+ *   --label-col-w:   row label column width (measured from DOM)
+ *   --tabs-h:        tab bar height for co-pinning (measured from DOM)
+ *
  * Replaces GridPlot and BarPlot with a single composable frame.
  */
 
@@ -176,28 +181,46 @@ export function PlotFrame({
   children,
 }: PlotFrameProps) {
   const gridRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const labelsRef = useRef<HTMLDivElement>(null);
   const [colLabelHeight, setColLabelHeight] = useState(0);
   const [colOverhang, setColOverhang] = useState(0);
+  const [labelColW, setLabelColW] = useState(0);
+  const [tabsH, setTabsH] = useState(0);
 
   const debugRef = useRef<HTMLPreElement>(null);
   useScrollSnap(gridRef, snapKey);
 
+  // Measure label column width and tabs height after render.
+  useLayoutEffect(() => {
+    if (labelsRef.current) {
+      setLabelColW(labelsRef.current.offsetWidth);
+    }
+    if (tabsRef.current) {
+      setTabsH(tabsRef.current.offsetHeight);
+    } else {
+      setTabsH(0);
+    }
+  });
+
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid || !debugRef.current) return;
-    const header = grid.querySelector('.plot-frame__header') as HTMLElement;
+    const tabsEl = grid.querySelector('.plot-frame__tabs') as HTMLElement;
     const tabScroll = grid.querySelector('.tab-scroll') as HTMLElement;
     const track = grid.querySelector('.tab-scroll__track') as HTMLElement;
     const labels = grid.querySelector('.plot-labels') as HTMLElement;
     const xLabels = grid.querySelector('.plot-frame__x-labels') as HTMLElement;
     debugRef.current.textContent = [
       `grid: ${grid.offsetWidth} (computed: ${getComputedStyle(grid).width})`,
-      `header: ${header?.offsetWidth} (h: ${header?.offsetHeight})`,
+      `tabs: ${tabsEl?.offsetWidth} (h: ${tabsEl?.offsetHeight})`,
       `tabScroll: ${tabScroll?.offsetWidth}`,
       `track: ${track?.offsetWidth} (scrollW: ${track?.scrollWidth})`,
       `labels: ${labels?.offsetWidth}`,
       `xLabels: ${xLabels?.offsetWidth}`,
       `--plot-frame-data-col: ${graph.width}px`,
+      `--label-col-w: ${labelColW}px`,
+      `--tabs-h: ${tabsH}px`,
       `colLabelHeight: ${colLabelHeight}`,
       `grid cols: ${getComputedStyle(grid).gridTemplateColumns}`,
       `parent: ${(grid.parentElement as HTMLElement)?.offsetWidth}`,
@@ -226,39 +249,36 @@ export function PlotFrame({
           "--plot-frame-data-col": `${graph.width}px`,
           "--col-label-overhang": `${colOverhang}px`,
           "--col-label-h": `${colLabelHeight}px`,
+          "--label-col-w": `${labelColW}px`,
+          "--tabs-h": `${tabsH}px`,
         } as React.CSSProperties}
       >
-        {/* Sticky header: tabs + x-axis context, pinned as one unit */}
-        <div className="plot-frame__header surface-sunken shadow-md radius-sm">
-          {header && (
-            <div className="plot-frame__tabs">
-              {header}
-            </div>
-          )}
-          <div className="plot-frame__colnames">
-            <div className="plot-labels plot-frame__colnames-reserve" aria-hidden="true">
-              <div className="axis-label axis-label--row tab-reserve">
-                {longestRowLabel}
-              </div>
-            </div>
-            {xBand && (
-              <BandColumnLabels xBand={xBand} xTicks={xTicks} onMeasure={handleMeasure} />
-            )}
-            {xContinuous && xTicks.length > 0 && (
-              <ContinuousTickLabels
-                xTicks={xTicks}
-                onMeasure={(height, overhang) => {
-                  setColLabelHeight(height);
-                  setColOverhang(overhang);
-                }}
-              />
-            )}
+        {/* Tabs: contained grid item, can't inflate columns */}
+        {header && (
+          <div ref={tabsRef} className="plot-frame__tabs surface-sunken shadow-md radius-sm">
+            {header}
           </div>
+        )}
+
+        {/* Column names: subgrid for column alignment */}
+        <div className="plot-frame__colnames surface-sunken shadow-md radius-sm">
+          {xBand && (
+            <BandColumnLabels xBand={xBand} xTicks={xTicks} onMeasure={handleMeasure} />
+          )}
+          {xContinuous && xTicks.length > 0 && (
+            <ContinuousTickLabels
+              xTicks={xTicks}
+              onMeasure={(height, overhang) => {
+                setColLabelHeight(height);
+                setColOverhang(overhang);
+              }}
+            />
+          )}
         </div>
 
         {/* Row labels */}
         {yScale.kind === "band" && (
-          <div className="plot-labels plot-frame__labels surface-sunken shadow-md radius-sm promote-layer">
+          <div ref={labelsRef} className="plot-labels plot-frame__labels surface-sunken shadow-md radius-sm promote-layer">
             <div className="axis-label axis-label--row tab-reserve" aria-hidden="true">
               {longestRowLabel}
             </div>

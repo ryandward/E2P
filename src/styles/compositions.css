@@ -166,22 +166,23 @@
   overflow: visible;
 }
 
-.plot-frame__header {
+.plot-frame__tabs {
   grid-column: 1 / -1;
+  overflow: hidden;
   contain: inline-size;
-  margin-bottom: calc(1lh / 2);
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
 }
 
 .plot-frame__colnames {
-  display: flex;
-}
-
-.plot-frame__tabs {
-  overflow: hidden;
-  contain: inline-size;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  margin-bottom: calc(1lh / 2);
+  position: sticky;
+  top: var(--tabs-h, 0px);
+  z-index: var(--z-nav);
 }
 
 .plot-frame__labels {
@@ -195,15 +196,14 @@
   align-items: flex-end;
   min-height: calc(var(--col-label-h, 0px) + var(--space-element));
   padding-top: var(--space-element);
+  margin-inline-start: var(--space-element);
 }
 
 .plot-frame__x-labels > * {
   height: 100%;
 }
 
-
-.plot-frame > .anchor,
-.plot-frame__x-labels {
+.plot-frame > .anchor {
   margin-inline-start: var(--space-element);
 }
 
