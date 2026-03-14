@@ -211,6 +211,23 @@ export function PlotFrame({
     const track = grid.querySelector('.tab-scroll__track') as HTMLElement;
     const labels = grid.querySelector('.plot-labels') as HTMLElement;
     const xLabels = grid.querySelector('.plot-frame__x-labels') as HTMLElement;
+    const colnames = grid.querySelector('.plot-frame__colnames') as HTMLElement;
+    const pick = (el: HTMLElement | null) => {
+      if (!el) return 'n/a';
+      const s = getComputedStyle(el);
+      return [
+        `bg:${s.backgroundColor}`,
+        `shadow:${s.boxShadow}`,
+        `radius:${s.borderRadius}`,
+        `contain:${s.contain}`,
+        `padding:${s.padding}`,
+        `margin:${s.margin}`,
+        `border:${s.border}`,
+        `clip-path:${s.clipPath}`,
+        `overflow:${s.overflow}`,
+        `opacity:${s.opacity}`,
+      ].join('\n          ');
+    };
     debugRef.current.textContent = [
       `grid: ${grid.offsetWidth} (computed: ${getComputedStyle(grid).width})`,
       `tabs: ${tabsEl?.offsetWidth} (h: ${tabsEl?.offsetHeight})`,
@@ -224,6 +241,10 @@ export function PlotFrame({
       `colLabelHeight: ${colLabelHeight}`,
       `grid cols: ${getComputedStyle(grid).gridTemplateColumns}`,
       `parent: ${(grid.parentElement as HTMLElement)?.offsetWidth}`,
+      `--- computed styles ---`,
+      `TABS:     ${pick(tabsEl)}`,
+      `COLNAMES: ${pick(colnames)}`,
+      `LABELS:   ${pick(labels)}`,
     ].join('\n');
   });
 
@@ -255,13 +276,13 @@ export function PlotFrame({
       >
         {/* Tabs: contained grid item, can't inflate columns */}
         {header && (
-          <div ref={tabsRef} className="plot-frame__tabs surface-sunken shadow-md radius-sm">
+          <div ref={tabsRef} className="plot-frame__tabs surface-sunken">
             {header}
           </div>
         )}
 
         {/* Column names: subgrid for column alignment */}
-        <div className="plot-frame__colnames surface-sunken shadow-md radius-sm">
+        <div className="plot-frame__colnames surface-sunken">
           {xBand && (
             <BandColumnLabels xBand={xBand} xTicks={xTicks} onMeasure={handleMeasure} />
           )}

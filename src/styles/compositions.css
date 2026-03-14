@@ -170,6 +170,7 @@
   grid-column: 1 / -1;
   overflow: hidden;
   contain: inline-size;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
@@ -179,10 +180,17 @@
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: subgrid;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--shadow-md);
   margin-bottom: calc(1lh / 2);
   position: sticky;
   top: var(--tabs-h, 0px);
   z-index: var(--z-nav);
+}
+
+/* When there are no tabs, colnames gets full radius */
+.plot-frame__colnames:first-child {
+  border-radius: var(--radius-sm);
 }
 
 .plot-frame__labels {
