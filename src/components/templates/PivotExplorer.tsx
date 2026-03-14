@@ -247,7 +247,6 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
       spec={spec}
       graph={graph}
       onHover={setHover}
-      snapKey={groupBy + "|" + resolvedTab}
       header={<TabBar tabs={tabValues} active={resolvedTab} onSelect={setActiveTab} />}
       controls={controlSpecs}
       onControlChange={handleControlChange}

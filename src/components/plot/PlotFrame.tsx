@@ -60,8 +60,6 @@ export interface PlotFrameProps {
   onControlChange?: (values: ControlValues) => void;
   /** Additional canopy content (legends, non-control elements). */
   canopy?: ReactNode;
-  /** When this value changes, the grid snaps back into view. */
-  snapKey?: string | number;
   /** Overlay children passed through to Plot (tooltips). */
   children?: ReactNode;
 }
@@ -193,7 +191,6 @@ export function PlotFrame({
   controls,
   onControlChange,
   canopy,
-  snapKey,
   children,
 }: PlotFrameProps) {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -220,7 +217,7 @@ export function PlotFrame({
     }
   }, [cs.committedValues, onControlChange]);
 
-  useScrollSnap(gridRef, snapKey);
+  useScrollSnap(gridRef, graph.height);
 
   const handleColMeasure = useCallback((height: number, overhang: number) => {
     setColH(height);
