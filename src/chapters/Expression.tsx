@@ -280,7 +280,7 @@ export default function Expression() {
           spec={exprSpec}
           graph={exprGraph}
           onHover={setExprHover}
-          snapKey={"expr|" + seed}
+          snapKey="expr"
           controls={EXPR_CONTROLS}
           onControlChange={handleExprChange}
           canopy={
@@ -307,7 +307,7 @@ export default function Expression() {
           spec={corrSpec}
           graph={corrGraph}
           onHover={setCorrHover}
-          snapKey={"corr|" + seed}
+          snapKey="corr"
           canopy={
             corrFillScale && corrFillScale.kind === "color"
               ? <ContinuousLegend scale={corrFillScale} low="-1" high="+1" />
