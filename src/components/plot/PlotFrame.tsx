@@ -31,6 +31,7 @@ import {
 import { useScrollSnap } from "../../hooks/useScrollSnap";
 import { Plot, type HoverEvent } from "./Plot";
 import { CanopyControl } from "./CanopyControl";
+import { PlotErrorBoundary } from "./PlotErrorBoundary";
 import type { ControlSpec, ControlValues } from "./controls";
 import { initControlValues } from "./controls";
 import type { HitResult } from "../../lib/plot/hitTest";
@@ -253,7 +254,7 @@ export function PlotFrame({
       `tabs: ${tabsEl?.offsetWidth} (h: ${tabsEl?.offsetHeight})`,
       `labels: ${labels?.offsetWidth}  xLabels: ${xLabels?.offsetWidth}`,
       `reserve: ${reserveEl?.offsetWidth} (text: "${reserveEl?.textContent?.slice(0, 20)}${(reserveEl?.textContent?.length ?? 0) > 20 ? '...' : ''}")`,
-      `firstRowLabel: ${firstRowLabel?.offsetWidth} (scrollW: ${firstRowLabel?.scrollWidth}) maxW: ${firstRowLabel ? getComputedStyle(firstRowLabel).maxWidth : 'n/a'}`,
+      `firstRowLabel: ${firstRowLabel?.offsetWidth} (span: ${firstRowLabel?.querySelector('span')?.offsetWidth} scrollW: ${firstRowLabel?.querySelector('span')?.scrollWidth} maxW: ${firstRowLabel?.querySelector('span') ? getComputedStyle(firstRowLabel.querySelector('span')!).maxWidth : 'n/a'})`,
       `firstColLabel: ${firstColLabel?.offsetWidth} (scrollW: ${firstColLabel?.scrollWidth})`,
       `colnames: ${colnames?.offsetWidth} (h: ${colnames?.offsetHeight})`,
       `canvas: ${canvas?.offsetWidth} (left: ${canvas?.offsetLeft})`,
@@ -275,6 +276,7 @@ export function PlotFrame({
   const yStep = yScale.kind === "band" ? Math.round(yScale.step) : 0;
 
   return (
+    <PlotErrorBoundary>
     <div className="sidebar">
       <div
         ref={gridRef}
@@ -348,5 +350,6 @@ export function PlotFrame({
         </div>
       )}
     </div>
+    </PlotErrorBoundary>
   );
 }
