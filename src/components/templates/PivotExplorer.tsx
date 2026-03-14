@@ -147,6 +147,14 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
 
   const otherDim = dimensions[0] === groupBy ? dimensions[1] : dimensions[0];
 
+  // Stable label column floor: longest label across both dimensions, capped at truncation limit.
+  const minLabelW = useMemo(() => {
+    const vals0 = unique(data.columns[dimensions[0]] as string[]);
+    const vals1 = unique(data.columns[dimensions[1]] as string[]);
+    const maxLen = [...vals0, ...vals1].reduce((max, s) => Math.max(max, s.length), 0);
+    return Math.min(maxLen, 18); // capped at --label-max-w token (18ch)
+  }, [data, dimensions]);
+
   // Unique values for tabs (from groupBy column).
   const groupByCol = data.columns[groupBy] as string[];
   const tabValues = useMemo(() => unique(groupByCol), [groupByCol]);
@@ -199,6 +207,7 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
   );
 
   return (
+    <div style={{ "--plot-label-floor": `${minLabelW}ch` } as React.CSSProperties}>
     <PlotFrame
       spec={spec}
       graph={graph}
@@ -246,5 +255,6 @@ export function PivotExplorer({ data, dimensions, metric }: PivotExplorerProps) 
     >
       {hover && <PivotTooltip hover={hover} />}
     </PlotFrame>
+    </div>
   );
 }

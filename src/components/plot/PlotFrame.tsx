@@ -8,10 +8,13 @@
  *   - Row labels pinned to the left via CSS Grid
  *
  * Layout uses four emergent measurements as CSS custom properties:
- *   --col-label-h:       rotated column label height (trigonometry)
- *   --col-label-overhang: last label's horizontal extent past data column
- *   --label-col-w:       grid column 1 track width (measured from computed style)
- *   --tabs-h:            tab bar height for co-pinning (measured from DOM)
+ *   --plot-col-h:        rotated column label height (trigonometry)
+ *   --plot-col-overhang: last label's horizontal extent past data column
+ *   --plot-label-w:      grid column 1 track width (measured from computed style)
+ *   --plot-tabs-h:       tab bar height for co-pinning (measured from DOM)
+ *
+ * Templates can set --plot-label-floor (in ch units) on a parent element
+ * to guarantee stable label column width across tab switches.
  *
  * Replaces GridPlot and BarPlot with a single composable frame.
  */
@@ -182,20 +185,15 @@ export function PlotFrame({
   const gridRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const debugRef = useRef<HTMLPreElement>(null);
-  const [colLabelHeight, setColLabelHeight] = useState(0);
+  const [colH, setColH] = useState(0);
   const [colOverhang, setColOverhang] = useState(0);
-  const [labelColW, setLabelColW] = useState(0);
+  const [labelW, setLabelW] = useState(0);
   const [tabsH, setTabsH] = useState(0);
 
   useScrollSnap(gridRef, snapKey);
 
-  const handleMeasure = useCallback((height: number, overhang: number) => {
-    setColLabelHeight(height);
-    setColOverhang(overhang);
-  }, []);
-
-  const handleContinuousMeasure = useCallback((height: number, overhang: number) => {
-    setColLabelHeight(height);
+  const handleColMeasure = useCallback((height: number, overhang: number) => {
+    setColH(height);
     setColOverhang(overhang);
   }, []);
 
@@ -204,7 +202,7 @@ export function PlotFrame({
     if (gridRef.current) {
       const cols = getComputedStyle(gridRef.current).gridTemplateColumns;
       const firstCol = parseFloat(cols);
-      if (isFinite(firstCol)) setLabelColW(firstCol);
+      if (isFinite(firstCol)) setLabelW(firstCol);
     }
     if (tabsRef.current) {
       setTabsH(tabsRef.current.offsetHeight);
@@ -226,18 +224,17 @@ export function PlotFrame({
     const firstColLabel = grid.querySelector('.axis-label--col') as HTMLElement;
     const colnames = grid.querySelector('.plot-frame__colnames') as HTMLElement;
     const canvas = grid.querySelector('.plot-frame__canvas') as HTMLElement;
-    const maxWToken = firstRowLabel ? getComputedStyle(firstRowLabel).maxWidth : 'n/a';
     debugRef.current.textContent = [
       `grid: ${grid.offsetWidth} cols: ${getComputedStyle(grid).gridTemplateColumns}`,
       `tabs: ${tabsEl?.offsetWidth} (h: ${tabsEl?.offsetHeight})`,
       `labels: ${labels?.offsetWidth}  xLabels: ${xLabels?.offsetWidth}`,
       `reserve: ${reserveEl?.offsetWidth} (text: "${reserveEl?.textContent?.slice(0, 20)}${(reserveEl?.textContent?.length ?? 0) > 20 ? '...' : ''}")`,
-      `firstRowLabel: ${firstRowLabel?.offsetWidth} (scrollW: ${firstRowLabel?.scrollWidth}) maxW: ${maxWToken}`,
+      `firstRowLabel: ${firstRowLabel?.offsetWidth} (scrollW: ${firstRowLabel?.scrollWidth}) maxW: ${firstRowLabel ? getComputedStyle(firstRowLabel).maxWidth : 'n/a'}`,
       `firstColLabel: ${firstColLabel?.offsetWidth} (scrollW: ${firstColLabel?.scrollWidth})`,
       `colnames: ${colnames?.offsetWidth} (h: ${colnames?.offsetHeight})`,
       `canvas: ${canvas?.offsetWidth} (left: ${canvas?.offsetLeft})`,
-      `--plot-frame-data-col: ${graph.width}px  --label-col-w: ${labelColW}px  --tabs-h: ${tabsH}px`,
-      `--col-label-h: ${colLabelHeight}  --col-label-overhang: ${colOverhang}`,
+      `--plot-data-w: ${graph.width}px  --plot-label-w: ${labelW}px  --plot-tabs-h: ${tabsH}px`,
+      `--plot-col-h: ${colH}  --plot-col-overhang: ${colOverhang}`,
       `longestRowLabel: "${longestRowLabel.slice(0, 25)}${longestRowLabel.length > 25 ? '...' : ''}" (${longestRowLabel.length}ch)`,
     ].join('\n');
   });
@@ -259,11 +256,11 @@ export function PlotFrame({
         ref={gridRef}
         className="plot-frame"
         style={{
-          "--plot-frame-data-col": `${graph.width}px`,
-          "--col-label-overhang": `${colOverhang}px`,
-          "--col-label-h": `${colLabelHeight}px`,
-          "--label-col-w": `${labelColW}px`,
-          "--tabs-h": `${tabsH}px`,
+          "--plot-data-w": `${graph.width}px`,
+          "--plot-col-overhang": `${colOverhang}px`,
+          "--plot-col-h": `${colH}px`,
+          "--plot-label-w": `${labelW}px`,
+          "--plot-tabs-h": `${tabsH}px`,
         } as React.CSSProperties}
       >
         {/* Tabs: contained grid item, can't inflate columns */}
@@ -273,13 +270,13 @@ export function PlotFrame({
           </div>
         )}
 
-        {/* X-axis context: aligned via --label-col-w measurement */}
+        {/* X-axis context: aligned via --plot-label-w measurement */}
         <div className="plot-frame__colnames surface-sunken">
           {xBand && (
-            <BandColumnLabels xBand={xBand} xTicks={xTicks} onMeasure={handleMeasure} />
+            <BandColumnLabels xBand={xBand} xTicks={xTicks} onMeasure={handleColMeasure} />
           )}
           {xContinuous && xTicks.length > 0 && (
-            <ContinuousTickLabels xTicks={xTicks} onMeasure={handleContinuousMeasure} />
+            <ContinuousTickLabels xTicks={xTicks} onMeasure={handleColMeasure} />
           )}
         </div>
 

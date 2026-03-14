@@ -149,7 +149,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  width: max-content;
   padding-inline: var(--space-element);
   margin-right: calc(1lh / 2);
   clip-path: inset(0 -100% -100% -100%);
@@ -159,9 +158,9 @@
 /* ── Plot Frame: unified label column + data column with sticky header ── */
 
 .plot-frame {
-  --col-label-overhang: 0px;
+  --plot-col-overhang: 0px;
   display: grid;
-  grid-template-columns: min-content calc(var(--plot-frame-data-col) + var(--col-label-overhang) + 2 * var(--space-element));
+  grid-template-columns: minmax(var(--plot-label-floor, 0px), auto) calc(var(--plot-data-w) + var(--plot-col-overhang) + 2 * var(--space-element));
   justify-self: start;
   overflow: visible;
 }
@@ -182,7 +181,7 @@
   box-shadow: var(--shadow-md);
   margin-bottom: calc(1lh / 2);
   position: sticky;
-  top: var(--tabs-h, 0px);
+  top: var(--plot-tabs-h, 0px);
   z-index: var(--z-nav);
 }
 
@@ -199,9 +198,9 @@
   position: relative;
   display: flex;
   align-items: flex-end;
-  min-height: calc(var(--col-label-h, 0px) + var(--space-element));
+  min-height: calc(var(--plot-col-h, 0px) + var(--space-element));
   padding-top: var(--space-element);
-  margin-inline-start: calc(var(--label-col-w, 0px) + var(--space-element));
+  margin-inline-start: calc(var(--plot-label-w, 0px) + var(--space-element));
 }
 
 .plot-frame__x-labels > * {
