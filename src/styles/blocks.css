@@ -133,7 +133,7 @@
 
 /* ── Tab Reserve (invisible sizer for stable column width) ── */
 
-.tab-reserve {
+.axis-label--row.tab-reserve {
   height: 0;
   overflow: hidden;
 }
