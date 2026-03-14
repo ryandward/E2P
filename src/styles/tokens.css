@@ -326,6 +326,7 @@
   --font-body: var(--font-sans);
   --font-code: var(--font-mono);
   --text-sidebar: var(--text-body-lg);
+  --label-max-w: 18ch;
 
   /* ── Spatial intent ── */
   --lifted: -2px;

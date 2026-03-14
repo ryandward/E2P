@@ -213,6 +213,12 @@
   justify-content: flex-end;
 }
 
+.axis-label--row > span {
+  max-width: var(--label-max-w);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .axis-label--col {
   --col-angle: 60deg;
   position: absolute;
@@ -222,6 +228,9 @@
   transform-origin: 0% 100%;
   transform: rotate(calc(-1 * var(--col-angle)));
   will-change: transform;
+  max-width: var(--label-max-w);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

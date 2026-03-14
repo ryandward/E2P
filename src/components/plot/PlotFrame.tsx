@@ -105,7 +105,7 @@ function BandColumnLabels({
             "--col-center": `${xBand.bandwidth / 2}px`,
           } as React.CSSProperties}
         >
-          <span className="axis-label axis-label--col">
+          <span className="axis-label axis-label--col" title={tick.label}>
             {tick.label}
           </span>
         </div>
@@ -158,7 +158,7 @@ function ContinuousTickLabels({
             left: tick.position,
           }}
         >
-          <span className="axis-label axis-label--col">
+          <span className="axis-label axis-label--col" title={tick.label}>
             {tick.label}
           </span>
         </div>
@@ -221,11 +221,24 @@ export function PlotFrame({
     const tabsEl = grid.querySelector('.plot-frame__tabs') as HTMLElement;
     const labels = grid.querySelector('.plot-labels') as HTMLElement;
     const xLabels = grid.querySelector('.plot-frame__x-labels') as HTMLElement;
+    const reserveEl = labels?.querySelector('.tab-reserve') as HTMLElement;
+    const firstRowLabel = labels?.querySelector('.axis-label--row:not(.tab-reserve)') as HTMLElement;
+    const firstColLabel = grid.querySelector('.axis-label--col') as HTMLElement;
+    const colnames = grid.querySelector('.plot-frame__colnames') as HTMLElement;
+    const canvas = grid.querySelector('.plot-frame__canvas') as HTMLElement;
+    const maxWToken = firstRowLabel ? getComputedStyle(firstRowLabel).maxWidth : 'n/a';
     debugRef.current.textContent = [
       `grid: ${grid.offsetWidth} cols: ${getComputedStyle(grid).gridTemplateColumns}`,
       `tabs: ${tabsEl?.offsetWidth} (h: ${tabsEl?.offsetHeight})`,
       `labels: ${labels?.offsetWidth}  xLabels: ${xLabels?.offsetWidth}`,
+      `reserve: ${reserveEl?.offsetWidth} (text: "${reserveEl?.textContent?.slice(0, 20)}${(reserveEl?.textContent?.length ?? 0) > 20 ? '...' : ''}")`,
+      `firstRowLabel: ${firstRowLabel?.offsetWidth} (scrollW: ${firstRowLabel?.scrollWidth}) maxW: ${maxWToken}`,
+      `firstColLabel: ${firstColLabel?.offsetWidth} (scrollW: ${firstColLabel?.scrollWidth})`,
+      `colnames: ${colnames?.offsetWidth} (h: ${colnames?.offsetHeight})`,
+      `canvas: ${canvas?.offsetWidth} (left: ${canvas?.offsetLeft})`,
       `--plot-frame-data-col: ${graph.width}px  --label-col-w: ${labelColW}px  --tabs-h: ${tabsH}px`,
+      `--col-label-h: ${colLabelHeight}  --col-label-overhang: ${colOverhang}`,
+      `longestRowLabel: "${longestRowLabel.slice(0, 25)}${longestRowLabel.length > 25 ? '...' : ''}" (${longestRowLabel.length}ch)`,
     ].join('\n');
   });
 
@@ -274,15 +287,16 @@ export function PlotFrame({
         {yScale.kind === "band" && (
           <div className="plot-labels plot-frame__labels surface-sunken shadow-md radius-sm promote-layer">
             <div className="axis-label axis-label--row tab-reserve" aria-hidden="true">
-              {longestRowLabel}
+              <span>{longestRowLabel}</span>
             </div>
             {yTicks.map((tick) => (
               <div
                 key={tick.label}
                 className="axis-label axis-label--row"
                 style={{ height: yStep }}
+                title={tick.label}
               >
-                {tick.label}
+                <span>{tick.label}</span>
               </div>
             ))}
           </div>
