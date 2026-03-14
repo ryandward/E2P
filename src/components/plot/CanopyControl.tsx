@@ -1,20 +1,22 @@
 /**
  * CanopyControl — renders a single ControlSpec as a canopy UI element.
  *
- * Stateless renderer. PlotFrame owns the state and passes current values.
+ * Stateless renderer. PlotFrame owns the state via controlReducer.
+ * Range controls dispatch DRAG_MOVE on change, DRAG_END on pointer up.
+ * Select controls dispatch SELECT (immediate commit, no drag phase).
  */
 
 import { StableCounter } from "stablekit.ts";
 import type { ControlSpec } from "./controls";
+import type { ControlAction } from "./controlState";
 
 interface CanopyControlProps {
   spec: ControlSpec;
   value: number | string;
-  onChange: (id: string, value: number | string) => void;
-  onCommit?: () => void;
+  dispatch: (action: ControlAction) => void;
 }
 
-export function CanopyControl({ spec, value, onChange, onCommit }: CanopyControlProps) {
+export function CanopyControl({ spec, value, dispatch }: CanopyControlProps) {
   if (spec.type === "select") {
     return (
       <div className="stack">
@@ -22,7 +24,7 @@ export function CanopyControl({ spec, value, onChange, onCommit }: CanopyControl
         <div className="dropdown">
           <select
             value={value as string}
-            onChange={(e) => onChange(spec.id, e.target.value)}
+            onChange={(e) => dispatch({ type: "SELECT", id: spec.id, value: e.target.value })}
           >
             {spec.options.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -50,8 +52,9 @@ export function CanopyControl({ spec, value, onChange, onCommit }: CanopyControl
             max={spec.max}
             step={spec.step}
             value={numValue}
-            onChange={(e) => onChange(spec.id, Number(e.target.value))}
-            onPointerUp={onCommit}
+            onPointerDown={() => dispatch({ type: "DRAG_START", id: spec.id, value: numValue })}
+            onChange={(e) => dispatch({ type: "DRAG_MOVE", id: spec.id, value: Number(e.target.value) })}
+            onPointerUp={(e) => dispatch({ type: "DRAG_END", id: spec.id, value: Number((e.target as HTMLInputElement).value) })}
           />
           <StableCounter
             className="gauge"

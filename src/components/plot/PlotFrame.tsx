@@ -24,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useReducer,
   useRef,
   useState,
   type ReactNode,
@@ -34,6 +35,7 @@ import { CanopyControl } from "./CanopyControl";
 import { PlotErrorBoundary } from "./PlotErrorBoundary";
 import type { ControlSpec, ControlValues } from "./controls";
 import { initControlValues } from "./controls";
+import { controlReducer, initControlState } from "./controlState";
 import type { HitResult } from "../../lib/plot/hitTest";
 import type {
   PlotSpec,
@@ -202,18 +204,21 @@ export function PlotFrame({
   const [labelW, setLabelW] = useState(0);
   const [tabsH, setTabsH] = useState(0);
 
-  // Control state — owned by PlotFrame, not the caller.
-  const [controlValues, setControlValues] = useState<ControlValues>(
-    () => initControlValues(controls ?? []),
+  // Control state machine — separates drag (visual) from commit (query).
+  const [cs, dispatch] = useReducer(
+    controlReducer,
+    controls ?? [],
+    (specs) => initControlState(initControlValues(specs)),
   );
 
-  const handleControlChange = useCallback((id: string, value: number | string) => {
-    setControlValues((prev) => {
-      const next = { ...prev, [id]: value };
-      onControlChange?.(next);
-      return next;
-    });
-  }, [onControlChange]);
+  // Notify template only when committed values change.
+  const prevCommitted = useRef(cs.committedValues);
+  useEffect(() => {
+    if (prevCommitted.current !== cs.committedValues) {
+      prevCommitted.current = cs.committedValues;
+      onControlChange?.(cs.committedValues);
+    }
+  }, [cs.committedValues, onControlChange]);
 
   useScrollSnap(gridRef, snapKey);
 
@@ -339,12 +344,12 @@ export function PlotFrame({
       {(controls?.length || canopy) && (
         <div className="sticky-panel canopy stack">
           {canopy}
-          {controls?.map((spec) => (
+          {controls?.map((ctrl) => (
             <CanopyControl
-              key={spec.id}
-              spec={spec}
-              value={controlValues[spec.id] ?? (spec.type === "metric" ? spec.value : "")}
-              onChange={handleControlChange}
+              key={ctrl.id}
+              spec={ctrl}
+              value={cs.displayValues[ctrl.id] ?? (ctrl.type === "metric" ? ctrl.value : "")}
+              dispatch={dispatch}
             />
           ))}
         </div>
